@@ -1,0 +1,2067 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Pixel scatter gradient</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Schibsted+Grotesk:wght@400;500;700&display=swap" rel="stylesheet">
+<style>
+:root{
+  --bg:#E4E7EB; --panel:#FAFBFC; --ink:#1A2029; --muted:#5E6875; --line:#CDD3DA;
+  --stage:#9AA3AE; --accent:#2F55D4; --accent-ink:#FFFFFF; --track:#D5DAE0;
+  color-scheme:light;
+  box-sizing:border-box;
+  padding-top:env(safe-area-inset-top,0px);
+  padding-bottom:env(safe-area-inset-bottom,0px);
+}
+@media (prefers-color-scheme:dark){
+  :root:not([data-theme="light"]){
+    --bg:#15181D; --panel:#1D2128; --ink:#E7EAEE; --muted:#9AA3AE; --line:#2E343D;
+    --stage:#2A3038; --accent:#7D9BFF; --accent-ink:#0F1420; --track:#353C46;
+    color-scheme:dark;
+  }
+}
+:root[data-theme="dark"]{
+  --bg:#15181D; --panel:#1D2128; --ink:#E7EAEE; --muted:#9AA3AE; --line:#2E343D;
+  --stage:#2A3038; --accent:#7D9BFF; --accent-ink:#0F1420; --track:#353C46;
+  color-scheme:dark;
+}
+*,*::before,*::after{box-sizing:inherit}
+html,body{height:100%;margin:0}
+body{
+  background:var(--bg); color:var(--ink);
+  font-family:"Schibsted Grotesk",system-ui,-apple-system,"Segoe UI",sans-serif;
+  font-size:15px; line-height:1.45;
+}
+.app{display:grid;grid-template-columns:minmax(0,1fr) 360px;height:100%}
+.stage{
+  display:flex;flex-direction:column;min-width:0;min-height:0;user-select:none;-webkit-user-select:none;position:relative;
+  background:var(--stage);
+  background-image:
+    linear-gradient(45deg,rgba(0,0,0,.05) 25%,transparent 25%,transparent 75%,rgba(0,0,0,.05) 75%),
+    linear-gradient(45deg,rgba(0,0,0,.05) 25%,transparent 25%,transparent 75%,rgba(0,0,0,.05) 75%);
+  background-size:16px 16px;background-position:0 0,8px 8px;
+}
+.stage-inner{flex:1;display:flex;align-items:center;justify-content:center;padding:32px;min-height:0;overflow:auto;position:relative}
+#overlay{position:absolute;overflow:visible;pointer-events:none;filter:drop-shadow(0 1px 2px rgba(0,0,0,.45))}
+#overlay [data-h]{pointer-events:all;touch-action:none}
+#edgeLayer{position:absolute;overflow:visible;pointer-events:none;z-index:2;filter:drop-shadow(0 1px 2px rgba(0,0,0,.45))}
+#edgeLayer [data-h]{pointer-events:all;touch-action:none;cursor:grab}
+.bar-btn{font:inherit;font-size:13px;color:#fff;background:transparent;border:1px solid rgba(255,255,255,.45);border-radius:6px;padding:4px 10px;cursor:pointer}
+.bar-btn:hover{background:rgba(255,255,255,.12)}
+canvas#view{
+  display:block;max-width:100%;max-height:100%;width:auto;height:auto;
+  image-rendering:pixelated;image-rendering:crisp-edges;
+  box-shadow:0 1px 0 rgba(0,0,0,.15),0 12px 40px rgba(0,0,0,.18);
+}
+.stage-bar{display:flex;gap:12px;align-items:center;justify-content:space-between;padding:10px 20px;color:#fff;font-size:13px;background:rgba(0,0,0,.22)}
+.stage-bar span{opacity:.9}
+aside{
+  background:var(--panel);border-left:1px solid var(--line);
+  overflow-y:auto;padding:22px 22px 40px;
+}
+h1{font-size:22px;font-weight:700;letter-spacing:-.01em;margin:0 0 4px;line-height:1.2}
+.lede{color:var(--muted);margin:0 0 20px;font-size:14px}
+section{padding:18px 0;border-top:1px solid var(--line)}
+h2{font-size:15px;font-weight:700;margin:0 0 12px}
+.field{margin-bottom:14px}
+.field:last-child{margin-bottom:0}
+.row{display:flex;justify-content:space-between;align-items:baseline;gap:8px;margin-bottom:6px}
+label{font-size:14px}
+output,.val{font-variant-numeric:tabular-nums;color:var(--muted);font-size:13px}
+input[type=range]{width:100%;appearance:none;-webkit-appearance:none;background:transparent;height:22px;margin:0}
+input[type=range]::-webkit-slider-runnable-track{height:4px;background:var(--track);border-radius:2px}
+input[type=range]::-moz-range-track{height:4px;background:var(--track);border-radius:2px}
+input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:16px;height:16px;border-radius:50%;background:var(--accent);margin-top:-6px;border:2px solid var(--panel)}
+input[type=range]::-moz-range-thumb{width:14px;height:14px;border-radius:50%;background:var(--accent);border:2px solid var(--panel)}
+:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+.seg{display:flex;border:1px solid var(--line);border-radius:8px;overflow:hidden}
+.seg button{flex:1;border:0;background:transparent;color:var(--ink);font:inherit;font-size:13px;padding:7px 4px;cursor:pointer;border-right:1px solid var(--line)}
+.seg button:last-child{border-right:0}
+.seg button[aria-pressed="true"]{background:var(--accent);color:var(--accent-ink)}
+.color-card{border:1px solid var(--line);border-radius:10px;padding:12px;margin-bottom:10px}
+.color-head{display:flex;align-items:center;gap:10px;margin-bottom:10px}
+input[type=color]{width:34px;height:34px;padding:0;border:1px solid var(--line);border-radius:8px;background:none;cursor:pointer}
+input[type=color]::-webkit-color-swatch-wrapper{padding:3px}
+input[type=color]::-webkit-color-swatch{border:0;border-radius:5px}
+input[type=color]::-moz-color-swatch{border:0;border-radius:5px}
+.hex{flex:1;min-width:0;font:inherit;font-size:14px;padding:6px 8px;border:1px solid var(--line);border-radius:6px;background:transparent;color:var(--ink);text-transform:uppercase}
+.icon-btn{border:1px solid var(--line);background:transparent;color:var(--muted);width:32px;height:32px;border-radius:6px;cursor:pointer;font-size:18px;line-height:1}
+.icon-btn:hover{color:var(--ink)}
+.btn{font:inherit;font-size:14px;font-weight:500;border-radius:8px;padding:9px 14px;cursor:pointer;border:1px solid var(--line);background:transparent;color:var(--ink)}
+.btn.primary{background:var(--accent);color:var(--accent-ink);border-color:var(--accent)}
+.btn.small{padding:6px 10px;font-size:13px}
+.btn-row{display:flex;gap:8px;flex-wrap:wrap}
+.size-row{display:grid;grid-template-columns:1fr auto 1fr;gap:8px;align-items:center}
+.size-row input{width:100%;font:inherit;font-size:14px;padding:7px 8px;border:1px solid var(--line);border-radius:6px;background:transparent;color:var(--ink)}
+.matte-box{display:flex;gap:12px;align-items:center;margin-bottom:10px}
+.matte-box img{width:64px;height:64px;object-fit:cover;border:1px solid var(--line);border-radius:6px;background:#000;flex:none}
+.matte-box .meta{min-width:0;flex:1}
+#matteName{margin:0 0 6px;font-size:13px;color:var(--muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.swatches{display:grid;grid-template-columns:repeat(6,minmax(0,1fr));gap:6px;margin:0 0 10px}
+.color-head{position:relative}
+.swatch-btn{width:34px;height:34px;border:1px solid var(--line);border-radius:8px;padding:3px;background:none;cursor:pointer;flex:none}
+.swatch-btn span{display:block;width:100%;height:100%;border-radius:5px;box-shadow:inset 0 0 0 1px rgba(0,0,0,.12)}
+.swatch-btn[aria-expanded="true"]{outline:2px solid var(--accent);outline-offset:1px}
+.native-picker{position:absolute;left:0;top:30px;width:1px;height:1px;opacity:0;pointer-events:none;border:0;padding:0}
+#palettePop{position:fixed;z-index:50;width:236px;background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:12px;box-shadow:0 10px 32px rgba(0,0,0,.22)}
+#palettePop .pop-title{font-size:13px;color:var(--muted);margin:0 0 8px}
+.swatches button{aspect-ratio:1;min-width:0;padding:0;border:1px solid rgba(0,0,0,.18);border-radius:4px;cursor:pointer}
+.swatches button[aria-pressed="true"]{outline:2px solid var(--accent);outline-offset:1px}
+.ease-btn{display:flex;align-items:center;gap:10px;width:100%;border:1px solid var(--line);border-radius:8px;background:transparent;color:var(--ink);font:inherit;font-size:14px;padding:6px 10px;cursor:pointer;text-align:left}
+.ease-btn:hover{border-color:var(--muted)}
+.ease-btn[aria-expanded="true"]{outline:2px solid var(--accent);outline-offset:1px}
+.ease-btn svg{flex:none;color:var(--accent)}
+.ease-btn .chev{margin-left:auto;color:var(--muted);font-size:12px}
+#presetPop{position:fixed;z-index:50;width:300px;max-height:min(72vh,540px);overflow:auto;background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:14px;box-shadow:0 10px 32px rgba(0,0,0,.22)}
+#presetPop .pop-title{font-size:13px;color:var(--muted);margin:0 0 8px}
+.preset-list{display:flex;flex-direction:column;gap:6px}
+.pr-row{display:flex;align-items:center;gap:6px}
+.preset-item{flex:1;display:flex;align-items:center;gap:10px;min-width:0;border:1px solid var(--line);border-radius:8px;background:transparent;color:var(--ink);font:inherit;font-size:14px;padding:8px 10px;cursor:pointer;text-align:left}
+.preset-item:hover{border-color:var(--accent)}
+.preset-item .ic{font-size:18px;width:22px;text-align:center;flex:none}
+.preset-item .nm{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.preset-item .dt{font-size:12px;color:var(--muted);flex:none}
+.icon-grid{display:grid;grid-template-columns:repeat(8,minmax(0,1fr));gap:4px;margin:6px 0 10px}
+.icon-grid button{font-size:17px;aspect-ratio:1;min-width:0;border:1px solid var(--line);border-radius:6px;background:transparent;cursor:pointer;padding:0}
+.icon-grid button[aria-pressed="true"]{outline:2px solid var(--accent);outline-offset:1px}
+.p-input{width:100%;font:inherit;font-size:14px;padding:8px 10px;border:1px solid var(--line);border-radius:6px;background:transparent;color:var(--ink)}
+.p-err{color:#C2362B;font-size:13px;min-height:1em;margin:6px 0}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]) .p-err{color:#FF8A80}}
+#easePop{position:fixed;z-index:50;width:252px;background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:14px;box-shadow:0 10px 32px rgba(0,0,0,.22)}
+#easePop .pop-title{font-size:13px;color:var(--muted);margin:0 0 8px}
+#easeSvg{display:block;width:100%;height:auto;touch-action:none;user-select:none;-webkit-user-select:none}
+#easeSvg .box{fill:none;stroke:var(--line)}
+#easeSvg .diag{stroke:var(--line);stroke-dasharray:3 4}
+#easeSvg .arm{stroke:var(--muted);stroke-width:1.5}
+#easeSvg .curve{fill:none;stroke:var(--accent);stroke-width:2.5;stroke-linecap:round}
+#easeSvg .knob{fill:var(--panel);stroke:var(--accent);stroke-width:2.5;cursor:grab}
+#easeSvg .lbl{fill:var(--muted);font-size:10px}
+.preset-row{display:grid;grid-template-columns:repeat(2,1fr);gap:6px;margin-top:10px}
+.preset-row button[aria-pressed="true"]{border-color:var(--accent);color:var(--accent)}
+#easeCode{font-variant-numeric:tabular-nums;margin:8px 0 0}
+#animPanel .phase{font-size:13px;color:var(--muted);margin:6px 0 0}
+.hint{font-size:13px;color:var(--muted);margin:6px 0 0}
+@media (max-width:820px){
+  .app{grid-template-columns:1fr;height:auto}
+  .stage{position:sticky;top:env(safe-area-inset-top,0px);z-index:5;max-height:46vh}
+  .stage-inner{padding:16px}
+  aside{border-left:0;border-top:1px solid var(--line)}
+  body::before{content:"";position:fixed;inset:0 0 auto;height:env(safe-area-inset-top,0px);z-index:10;background:var(--stage)}
+}
+@media (prefers-reduced-motion:reduce){*{transition:none!important}}
+</style>
+</head>
+<body>
+<div class="app">
+  <div class="stage">
+    <div class="stage-inner" id="stageInner"><canvas id="view" aria-label="Gradient preview"></canvas><svg id="overlay" xmlns="http://www.w3.org/2000/svg" aria-hidden="true"></svg></div>
+    <svg id="edgeLayer" xmlns="http://www.w3.org/2000/svg" aria-hidden="true"></svg>
+    <div class="stage-bar"><span id="info">–</span><span id="saveNote"></span><button class="bar-btn" id="toggleHandles">Hide handles</button></div>
+  </div>
+
+  <aside>
+    <h1>Pixel scatter gradient</h1>
+    <p class="lede">Scatter colors as square cells and let them thin out into a base color.</p>
+    <div class="btn-row" style="margin-bottom:14px">
+      <button class="btn" id="presetBtn" aria-haspopup="dialog" aria-expanded="false">Presets</button>
+      <button class="btn" id="presetSave" aria-haspopup="dialog" aria-expanded="false">Save as preset</button>
+    </div>
+    <div class="seg" id="appMode" role="group" aria-label="Mode" style="margin-bottom:20px">
+      <button data-m="design" aria-pressed="true">Design</button>
+      <button data-m="animate" aria-pressed="false">Animate</button>
+    </div>
+    <div id="designPanel">
+    <div class="btn-row" style="margin-bottom:20px"><button class="btn primary" id="lucky" style="display:inline-flex;align-items:center;gap:8px"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="3" width="18" height="18" rx="4"/><circle cx="8" cy="8" r="1.4" fill="currentColor" stroke="none"/><circle cx="16" cy="8" r="1.4" fill="currentColor" stroke="none"/><circle cx="12" cy="12" r="1.4" fill="currentColor" stroke="none"/><circle cx="8" cy="16" r="1.4" fill="currentColor" stroke="none"/><circle cx="16" cy="16" r="1.4" fill="currentColor" stroke="none"/></svg>Randomize</button></div>
+
+    <section>
+      <h2>Scatter colors</h2>
+      <div id="colorList"></div>
+      <button class="btn small" id="addColor">Add color</button>
+      <p class="hint">Scatter rate is how densely a color covers the dense end. Reach is how far across the gradient it travels before it’s gone.</p>
+    </section>
+
+    <section>
+      <h2>Blend into</h2>
+      <div class="color-head" style="margin:0">
+        <button type="button" class="swatch-btn" id="baseSwatchBtn" data-target="base" aria-label="Choose base color" aria-haspopup="dialog" aria-expanded="false"><span></span></button>
+        <input type="color" id="baseColor" class="native-picker" tabindex="-1" aria-hidden="true">
+        <input class="hex" id="baseHex" aria-label="Base color hex" maxlength="7">
+      </div>
+    </section>
+
+    <section>
+      <h2>Cells</h2>
+      <div class="field">
+        <div class="row"><label for="cell">Cell size</label><output id="cellOut"></output></div>
+        <input type="range" id="cell" min="1" max="80" step="1">
+      </div>
+      <div class="field">
+        <div class="row"><label>Pattern</label></div>
+        <div class="seg" id="modeSeg">
+          <button data-v="random">Random</button>
+          <button data-v="even">Even</button>
+          <button data-v="ordered">Ordered</button>
+        </div>
+      </div>
+      <div class="field">
+        <div class="btn-row"><button class="btn small" id="reseed">Shuffle scatter</button></div>
+      </div>
+    </section>
+
+    <section>
+      <h2>Gradient</h2>
+      <div class="field">
+        <div class="row"><label>Shape</label></div>
+        <div class="seg" id="shapeSeg">
+          <button data-v="linear">Linear</button>
+          <button data-v="radial">Radial</button>
+          <button data-v="matte">Matte</button>
+        </div>
+        <p class="hint" id="handleHint">Drag the handles on the preview to move, rotate and stretch the gradient. Each color’s diamond on its dotted line sets that color’s reach. Hold Shift to snap angles.</p>
+        <div class="btn-row" id="radialTools" style="margin-top:10px;display:none"><button class="btn small" id="centerRadial">Centre gradient</button><button class="btn small" id="circleRadial">Make circular</button></div>
+      </div>
+      <div class="field" id="matteField" style="display:none">
+        <div class="matte-box">
+          <img id="matteThumb" alt="Matte preview" hidden>
+          <div class="meta">
+            <p id="matteName">No matte yet</p>
+            <div class="btn-row">
+              <button class="btn small" id="matteUpload">Upload matte</button>
+              <button class="btn small" id="matteSize" disabled>Use matte size</button>
+              <button class="btn small" id="matteDelete" disabled>Delete matte</button>
+            </div>
+            <input type="file" id="matteFile" accept="image/*" hidden>
+          </div>
+        </div>
+        <p class="hint" style="margin:0 0 12px">White areas get the most scatter, black areas fade to the base color, and grays fall in between.</p>
+        <div class="field">
+          <div class="row"><label>Fit</label></div>
+          <div class="seg" id="fitSeg">
+            <button data-v="stretch">Stretch</button>
+            <button data-v="cover">Fill</button>
+            <button data-v="contain">Fit</button>
+          </div>
+        </div>
+        <div class="field">
+          <div class="row"><label for="matteBlur">Blur</label><output id="matteBlurOut"></output></div>
+          <input type="range" id="matteBlur" min="0" max="250" step="1">
+          <p class="hint">Blurs the matte before it shapes the scatter, so hard edges turn into smooth transitions.</p>
+        </div>
+      </div>
+      <div class="field" id="angleField">
+        <div class="row"><label for="angle">Direction</label><output id="angleOut"></output></div>
+        <input type="range" id="angle" min="0" max="359" step="1">
+        <div class="seg" style="margin-top:8px" id="dirSeg">
+          <button data-a="0" aria-label="Dense on the left">Left</button>
+          <button data-a="180" aria-label="Dense on the right">Right</button>
+          <button data-a="90" aria-label="Dense on top">Top</button>
+          <button data-a="270" aria-label="Dense on bottom">Bottom</button>
+        </div>
+      </div>
+      <div class="field" id="invertField" style="display:none">
+        <label><input type="checkbox" id="invert"> <span id="invertLabel">Dense at the edges</span></label>
+      </div>
+      <div class="field">
+        <div class="row"><label for="start">Solid until</label><output id="startOut"></output></div>
+        <input type="range" id="start" min="0" max="100" step="1">
+      </div>
+      <div class="field">
+        <div class="row"><label for="end">Fully faded at</label><output id="endOut"></output></div>
+        <input type="range" id="end" min="0" max="100" step="1">
+      </div>
+      <div class="field">
+        <div class="row"><label for="curve">Falloff curve</label><output id="curveOut"></output></div>
+        <input type="range" id="curve" min="0.2" max="4" step="0.05">
+        <p class="hint">Below 1 holds density longer, above 1 thins out faster.</p>
+      </div>
+    </section>
+
+    <section>
+      <h2>Output</h2>
+      <div class="field">
+        <div class="size-row">
+          <input type="number" id="w" min="16" max="8000" aria-label="Width in pixels">
+          <span class="val">×</span>
+          <input type="number" id="h" min="16" max="8000" aria-label="Height in pixels">
+        </div>
+        <p class="hint">Size in pixels.</p>
+      </div>
+      <div class="btn-row">
+        <button class="btn primary" id="saveSvg">Save SVG</button>
+        <button class="btn" id="copySvg">Copy SVG code</button>
+        <button class="btn" id="savePng">Save PNG</button>
+        <button class="btn" id="copySettings">Copy settings</button>
+        <button class="btn" id="reset">Reset settings</button>
+      </div>
+      <p class="hint" id="svgInfo"></p>
+      <textarea id="svgCode" hidden readonly aria-label="SVG code" style="width:100%;height:140px;margin-top:10px;font:12px ui-monospace,Menlo,Consolas,monospace;border:1px solid var(--line);border-radius:6px;background:transparent;color:var(--ink);padding:8px"></textarea>
+    </section>
+    </div>
+    <div id="animPanel" hidden>
+      <div class="seg" id="animType" role="group" aria-label="Animation type" style="margin-bottom:12px">
+        <button data-v="transition">Transition</button>
+        <button data-v="dance">Dance loop</button>
+        <button data-v="interactive">Interactive</button>
+      </div>
+      <p class="hint" id="animNote" style="margin:0 0 4px"></p>
+      <section id="playSec">
+        <h2>Playback</h2>
+        <div class="btn-row" style="margin-bottom:14px">
+          <button class="btn primary" id="animPlay">Play</button>
+          <button class="btn" id="animRestart">Restart</button>
+        </div>
+        <div class="field">
+          <div class="row"><label for="animScrub">Timeline</label><output id="animTime"></output></div>
+          <input type="range" id="animScrub" min="0" max="1000" step="1" value="0">
+          <p class="phase" id="animPhase"></p>
+        </div>
+        <div class="field" id="loopField"><label><input type="checkbox" id="animLoop"> Loop</label></div>
+      </section>
+      <div id="interCtl" hidden>
+      <section>
+        <h2>Interactive</h2>
+        <div class="field">
+          <div class="row"><label for="animCursor">Trail size</label><output id="animCursorOut"></output></div>
+          <input type="range" id="animCursor" min="5" max="60" step="1">
+        </div>
+        <div class="field">
+          <div class="row"><label for="animTrail">Trail length</label><output id="animTrailOut"></output></div>
+          <input type="range" id="animTrail" min="0.1" max="2" step="0.05">
+          <p class="hint">How long the trail lingers before it dies off. Each click radiates the design out and then clears the screen, using the Come in and Go out timing below.</p>
+        </div>
+      </section>
+      </div>
+      <div id="danceCtl" hidden>
+      <section>
+        <h2>Dance</h2>
+        <div class="field">
+          <div class="row"><label for="animDLen">Loop length</label><output id="animDLenOut"></output></div>
+          <input type="range" id="animDLen" min="0.5" max="12" step="0.1">
+        </div>
+        <div class="field">
+          <div class="row"><label for="animCrazy">Craziness</label><output id="animCrazyOut"></output></div>
+          <input type="range" id="animCrazy" min="0" max="100" step="1">
+          <p class="hint">Low keeps the flicker to the fading edges of each color’s reach. High lets blocks flip on and off everywhere, including the dense areas.</p>
+        </div>
+        <div class="field">
+          <div class="row"><label for="animFlow">Flow</label><output id="animFlowOut"></output></div>
+          <input type="range" id="animFlow" min="0" max="100" step="1">
+          <p class="hint">0% is random twinkling. Higher values turn the flicker into waves that travel outward along the gradient.</p>
+        </div>
+      </section>
+      </div>
+      <div id="transCtl">
+      <section>
+        <h2>Come in</h2>
+        <div class="field">
+          <div class="row"><label for="animIn">Duration</label><output id="animInOut"></output></div>
+          <input type="range" id="animIn" min="0.2" max="10" step="0.1">
+        </div>
+        <div class="field">
+          <div class="row"><label>Easing</label></div>
+          <button type="button" class="ease-btn" id="animInEaseBtn" data-key="inEase" aria-haspopup="dialog" aria-expanded="false"></button>
+        </div>
+      </section>
+      <section id="holdSec">
+        <h2>Hold</h2>
+        <div class="field">
+          <div class="row"><label for="animHold">Duration</label><output id="animHoldOut"></output></div>
+          <input type="range" id="animHold" min="0" max="10" step="0.1">
+        </div>
+      </section>
+      <section>
+        <h2>Go out</h2>
+        <div class="field">
+          <div class="row"><label for="animOutD">Duration</label><output id="animOutDOut"></output></div>
+          <input type="range" id="animOutD" min="0.2" max="10" step="0.1">
+        </div>
+        <div class="field">
+          <div class="row"><label>Easing</label></div>
+          <button type="button" class="ease-btn" id="animOutEaseBtn" data-key="outEase" aria-haspopup="dialog" aria-expanded="false"></button>
+        </div>
+      </section>
+      <section>
+        <h2>Moving edge</h2>
+        <div class="field">
+          <div class="row"><label for="animSoft">Edge softness</label><output id="animSoftOut"></output></div>
+          <input type="range" id="animSoft" min="1" max="80" step="1">
+          <p class="hint">How wide the band of scattering pixels is along the moving edge. Low is a crisp wipe, high is a gradual dissolve.</p>
+        </div>
+      </section>
+      </div>
+      <section id="exportSec">
+        <h2>Export</h2>
+        <div class="field">
+          <div class="row"><label>Format</label></div>
+          <div class="seg" id="expFormat"><button data-v="mp4">MP4</button><button data-v="gif">GIF</button><button data-v="png">PNG sequence</button></div>
+        </div>
+        <div class="field">
+          <div class="row"><label>Frame rate</label></div>
+          <div class="seg" id="expFps"><button data-v="24">24 fps</button><button data-v="30">30 fps</button><button data-v="60">60 fps</button></div>
+        </div>
+        <div class="field">
+          <div class="row"><label>Size</label><output id="expSizeOut"></output></div>
+          <div class="seg" id="expScale"><button data-v="1">100%</button><button data-v="0.5">50%</button><button data-v="0.25">25%</button></div>
+        </div>
+        <p class="hint" id="expInfo" style="margin:0 0 12px"></p>
+        <div class="btn-row"><button class="btn primary" id="expGo">Export</button><button class="btn" id="expCancel" hidden>Cancel</button></div>
+        <div id="expProg" hidden style="margin-top:12px">
+          <div style="height:6px;background:var(--track);border-radius:3px;overflow:hidden"><div id="expBar" style="height:100%;width:0;background:var(--accent)"></div></div>
+          <p class="hint" id="expMsg" style="margin-top:6px" role="status"></p>
+        </div>
+      </section>
+    </div>
+  </aside>
+</div>
+
+<script>
+(function(){
+const DEFAULTS = {
+  w:1080, h:1350, cell:23, mode:"random", seed:363,
+  shape:"radial", angle:270, invert:true, start:5, end:98, curve:0.6,
+  lin:{x0:0.387717966172313,y0:0.9576517451104944,x1:0.38186290773168263,y1:-0.02333640828068366},
+  rad:{cx:0.5,cy:0.5,rx:0.9316469344294577,ry:0.9056245969653905,rot:-3.139298748310749}, showHandles:true,
+  base:"#1f1f1f", matteFit:"stretch", matteBlur:0, exp:{fmt:"mp4",fps:30,scale:1},
+  anim:{in:1.5, hold:1, out:1.5, inEase:[0.33,1,0.68,1], outEase:[0.32,0,0.67,0], soft:25, loop:true, type:"transition", dLen:3, crazy:35, flow:0, cursor:25, trail:0.4},
+  colors:[
+    {hex:"#ff4f00", rate:62, reach:10},
+    {hex:"#ffa300", rate:38, reach:28}
+  ]
+};
+const KEY = "pixel-scatter-gradient:v1";
+const EASE_PRESETS={linear:[0,0,1,1], in:[0.32,0,0.67,0], out:[0.33,1,0.68,1], inout:[0.65,0,0.35,1]};
+const EASE_NAMES={linear:"Linear", in:"Ease in", out:"Ease out", inout:"Smooth"};
+const PALETTE=["#ffa300","#ff4f00","#963d01","#5a0f00","#8a800e","#585100","#08484b","#1f1f1f","#f9faed","#f3f3f3","#e7f5a6","#68e098"];
+function swatchButtons(list){
+  return list.map(h=>`<button type="button" data-hex="${h}" aria-label="${h.toUpperCase()}" title="${h.toUpperCase()}" style="background:${h}"></button>`).join("");
+}
+function syncSwatches(){
+  document.querySelectorAll(".swatch-btn[data-target]").forEach(b=>{
+    const t=b.dataset.target;
+    const cur=t==="base"?S.base:(S.colors[+t]||{}).hex;
+    b.firstElementChild.style.background=cur||"transparent";
+    b.title=(cur||"").toUpperCase();
+  });
+}
+// color popover: brand swatches plus a custom picker
+const pop=document.createElement("div");
+pop.id="palettePop"; pop.setAttribute("role","dialog"); pop.setAttribute("aria-label","Choose a color"); pop.hidden=true;
+document.body.appendChild(pop);
+let popCtx=null;
+function openPalette(anchor,list,current,onPick,native){
+  closePalette(false);
+  pop.innerHTML=`<p class="pop-title">Brand colors</p><div class="swatches">${swatchButtons(list)}</div><button type="button" class="btn small" data-custom style="width:100%">Custom color…</button>`;
+  const cur=(current||"").toLowerCase();
+  pop.querySelectorAll("button[data-hex]").forEach(b=>b.setAttribute("aria-pressed",String(b.dataset.hex===cur)));
+  pop.hidden=false;
+  const r=anchor.getBoundingClientRect(), pw=pop.offsetWidth, ph=pop.offsetHeight;
+  const left=Math.min(window.innerWidth-pw-8,Math.max(8,r.left));
+  let top=r.bottom+6; if(top+ph>window.innerHeight-8) top=Math.max(8,r.top-ph-6);
+  pop.style.left=left+"px"; pop.style.top=top+"px";
+  popCtx={anchor,onPick,native};
+  anchor.setAttribute("aria-expanded","true");
+  (pop.querySelector('[aria-pressed="true"]')||pop.querySelector("button")).focus();
+}
+function closePalette(focusBack){
+  if(!popCtx) return;
+  pop.hidden=true;
+  popCtx.anchor.setAttribute("aria-expanded","false");
+  if(focusBack) popCtx.anchor.focus();
+  popCtx=null;
+}
+pop.addEventListener("click",e=>{
+  if(!popCtx) return;
+  const b=e.target.closest("button[data-hex]");
+  if(b){ popCtx.onPick(b.dataset.hex); closePalette(true); return; }
+  if(e.target.closest("[data-custom]")){
+    const n=popCtx.native; closePalette(false);
+    try{ if(n.showPicker) n.showPicker(); else n.click(); }catch(err){ n.click(); }
+  }
+});
+document.addEventListener("pointerdown",e=>{ if(popCtx&&!pop.contains(e.target)&&!popCtx.anchor.contains(e.target)) closePalette(false); });
+document.addEventListener("keydown",e=>{ if(e.key==="Escape"&&popCtx) closePalette(true); });
+window.addEventListener("resize",()=>closePalette(false));
+document.querySelector("aside").addEventListener("scroll",()=>closePalette(false));
+document.getElementById("baseSwatchBtn").addEventListener("click",e=>{
+  const btn=e.currentTarget;
+  if(popCtx&&popCtx.anchor===btn){ closePalette(true); return; }
+  openPalette(btn,["#ffffff",...PALETTE],S.base,h=>{
+    S.base=h;
+    document.getElementById("baseColor").value=h;
+    document.getElementById("baseHex").value=h.toUpperCase();
+    schedule();
+  },document.getElementById("baseColor"));
+});
+let S;
+try { S = JSON.parse(localStorage.getItem(KEY)) || null; } catch(e){ S = null; }
+if (!S || !Array.isArray(S.colors)) S = structuredClone(DEFAULTS);
+
+const $ = id => document.getElementById(id);
+const view = $("view"), vctx = view.getContext("2d");
+const small = document.createElement("canvas"), sctx = small.getContext("2d");
+
+function persist(){ try { localStorage.setItem(KEY, JSON.stringify(S)); } catch(e){} }
+
+function hexToRgb(h){
+  h = h.replace("#","");
+  if (h.length === 3) h = h.split("").map(c=>c+c).join("");
+  const n = parseInt(h,16);
+  return [(n>>16)&255,(n>>8)&255,n&255];
+}
+function validHex(v){ return /^#?([0-9a-f]{3}|[0-9a-f]{6})$/i.test(v.trim()); }
+function normHex(v){ v=v.trim(); if(v[0]!=="#") v="#"+v; if(v.length===4) v="#"+v.slice(1).split("").map(c=>c+c).join(""); return v.toLowerCase(); }
+
+// thresholds
+function hash(x,y,s){
+  let h = Math.imul(x|0,374761393) + Math.imul(y|0,668265263) + Math.imul(s|0,1442695041);
+  h = Math.imul(h ^ (h>>>13), 1274126177);
+  h ^= h>>>16;
+  return (h>>>0)/4294967296;
+}
+function frac(v){ return v - Math.floor(v); }
+const BAYER = (function(){
+  let m=[[0]];
+  for(let k=0;k<3;k++){
+    const n=m.length, r=[];
+    for(let y=0;y<n*2;y++){ r[y]=[]; for(let x=0;x<n*2;x++){
+      const q=[0,2,3,1][(y>=n?2:0)+(x>=n?1:0)];
+      r[y][x]=4*m[y%n][x%n]+q;
+    }}
+    m=r;
+  }
+  return m;
+})();
+function threshold(x,y){
+  const s=S.seed;
+  if (S.mode==="even"){
+    const xx=x+s*17, yy=y+s*31;
+    return frac(52.9829189*frac(0.06711056*xx+0.00583715*yy));
+  }
+  if (S.mode==="ordered"){
+    const ox=s*3, oy=s*5;
+    return (BAYER[(y+oy)&7][(x+ox)&7]+0.5)/64;
+  }
+  return hash(x,y,s);
+}
+
+let grid=null;
+let field=null;
+let animMode=false, animT=0, playing=false;
+let matteImg=null;
+const mcv=document.createElement("canvas");
+let raf=0;
+function schedule(){ if(!raf) raf=requestAnimationFrame(()=>{ raf=0; render(); }); }
+
+function render(){
+  const W=Math.max(16,Math.min(8000,S.w|0)), H=Math.max(16,Math.min(8000,S.h|0));
+  const c=Math.max(1,S.cell|0);
+  const cols=Math.ceil(W/c), rows=Math.ceil(H/c);
+  const idx=new Int16Array(cols*rows).fill(-1);
+  let filled=0;
+  const start=S.start/100, end=Math.max(S.end/100, start+0.001);
+  const curve=S.curve;
+
+  // linear projection extents
+  const L=S.lin, LX0=L.x0*W, LY0=L.y0*H, ldx=L.x1*W-LX0, ldy=L.y1*H-LY0, llen2=(ldx*ldx+ldy*ldy)||1;
+  const R=S.rad, rmax=Math.hypot(W,H)/2||1, RCX=R.cx*W, RCY=R.cy*H;
+  const rcr=Math.cos(R.rot), rsr=Math.sin(R.rot), rxp=Math.max(1e-6,R.rx*rmax), ryp=Math.max(1e-6,R.ry*rmax);
+
+  const n=S.colors.length;
+  const p=new Float64Array(n);
+  const mLum = S.shape==="matte" ? matteLuma(cols,rows,c,W,H) : null;
+  const NC=cols*rows, P=new Float32Array(NC*n), U=new Float32Array(NC), G=new Float32Array(NC);
+  let gmin=Infinity, gmax=-Infinity;
+  const DH=new Float32Array(NC), DK=new Uint8Array(NC);
+
+  for(let y=0;y<rows;y++){
+    const py=Math.min(H,(y+0.5)*c);
+    for(let x=0;x<cols;x++){
+      const px=Math.min(W,(x+0.5)*c);
+      let t, gval=0;
+      if (mLum){
+        t=1-mLum[y*cols+x];
+        if (S.invert) t=1-t;
+        gval=t;
+      } else if (S.shape==="radial"){
+        const ox=px-RCX, oy=py-RCY;
+        const u=ox*rcr+oy*rsr, v=-ox*rsr+oy*rcr;
+        t=Math.hypot(u/rxp,v/ryp);
+        gval=t;
+        if (S.invert) t=1-t;
+      } else {
+        t=((px-LX0)*ldx+(py-LY0)*ldy)/llen2;
+        gval=t;
+      }
+      let sum=0;
+      for(let i=0;i<n;i++){
+        const o=S.colors[i];
+        const reach=Math.max(0.01,o.reach/100);
+        const e=start+(end-start)*reach;
+        let dens;
+        if (t<=start) dens=1;
+        else if (t>=e) dens=0;
+        else dens=Math.pow(1-(t-start)/(e-start),curve);
+        p[i]=(o.rate/100)*dens;
+        sum+=p[i];
+      }
+      const scale=sum>1?1/sum:1;
+      const ci=y*cols+x;
+      for(let i=0;i<n;i++) P[ci*n+i]=p[i]*scale;
+      U[ci]=threshold(x,y);
+      DH[ci]=hash(x,y,S.seed+7919);
+      DK[ci]=1+Math.floor(hash(x,y,S.seed+104729)*3);
+      G[ci]=gval;
+      if(gval<gmin) gmin=gval;
+      if(gval>gmax) gmax=gval;
+    }
+  }
+  let gfirst=Infinity;
+  for(let ci=0;ci<NC;ci++){ let sp=0; for(let i=0;i<n;i++) sp+=P[ci*n+i]; if(sp>0.002&&G[ci]<gfirst) gfirst=G[ci]; }
+  if(!isFinite(gfirst)) gfirst=gmin;
+  field={n,P,U,G,DH,DK,gmin,gmax,gfirst};
+  grid={W,H,c,cols,rows,idx,filled:0};
+  assign(null);
+  filled=grid.filled;
+  if (animMode){ animAssign(); }
+  draw();
+  drawOverlay();
+  syncSwatches();
+  $("info").textContent = `${W} × ${H} px, ${cols} × ${rows} cells`;
+  $("svgInfo").textContent = `Vector export: ${filled.toLocaleString()} squares in ${n} color layer${n===1?"":"s"} over a base rectangle.`;
+  $("svgCode").hidden=true;
+  persist();
+}
+
+function assign(vis){
+  const idx=grid.idx, n=field.n, P=field.P, U=field.U, G=field.G;
+  let filled=0;
+  for(let ci=0;ci<idx.length;ci++){
+    idx[ci]=-1;
+    const v=vis?vis(G[ci]):1;
+    if(v<=0) continue;
+    const u=U[ci]; let acc=0;
+    for(let i=0;i<n;i++){ acc+=P[ci*n+i]*v; if(u<acc){ idx[ci]=i; filled++; break; } }
+  }
+  grid.filled=filled;
+}
+
+function packed(rgb){ return ((255<<24)|(rgb[2]<<16)|(rgb[1]<<8)|rgb[0])>>>0; }
+function draw(){
+  const {W,H,c,cols,rows,idx}=grid;
+  view.width=W; view.height=H;
+  const img=vctx.createImageData(W,H);
+  const px=new Uint32Array(img.data.buffer);
+  px.fill(packed(hexToRgb(S.base)));
+  const fills=S.colors.map(o=>packed(hexToRgb(o.hex)));
+  for(let y=0;y<rows;y++) for(let x=0;x<cols;x++){
+    const i=idx[y*cols+x]; if(i<0) continue;
+    const x0=x*c, y0=y*c, x1=Math.min(W,x0+c), y1=Math.min(H,y0+c);
+    const f=fills[i];
+    for(let yy=y0;yy<y1;yy++){ const r=yy*W; for(let xx=x0;xx<x1;xx++) px[r+xx]=f; }
+  }
+  vctx.putImageData(img,0,0);
+}
+
+function num(v){ return Math.round(v*1000)/1000; }
+function buildSVG(){
+  const {W,H,c,cols,rows,idx}=grid;
+  const out=[`<svg xmlns="http://www.w3.org/2000/svg" width="${W}" height="${H}" viewBox="0 0 ${W} ${H}" shape-rendering="crispEdges">`,
+    `<rect id="base" width="${W}" height="${H}" fill="${S.base}"/>`];
+  S.colors.forEach((o,i)=>{
+    const s=c, off=0;
+    const segs=[];
+    for(let y=0;y<rows;y++) for(let x=0;x<cols;x++){
+      if(idx[y*cols+x]!==i) continue;
+      const x0=x*c+off, y0=y*c+off;
+      const w=Math.min(W,x0+s)-x0, h=Math.min(H,y0+s)-y0;
+      if(w<=0||h<=0) continue;
+      segs.push(`M${num(x0)} ${num(y0)}h${num(w)}v${num(h)}h${num(-w)}z`);
+    }
+    if(segs.length) out.push(`<path id="color-${i+1}" fill="${o.hex}" d="${segs.join("")}"/>`);
+  });
+  out.push("</svg>");
+  return out.join("\n");
+}
+
+// ---- UI ----
+function bindRange(id, key, fmt){
+  const el=$(id), out=$(id+"Out");
+  el.value=S[key];
+  const show=()=>{ if(out) out.textContent=fmt(S[key]); };
+  show();
+  el.addEventListener("input",()=>{ S[key]=parseFloat(el.value); show(); if(key==="start"||key==="end") syncStartEnd(key); schedule(); });
+}
+function syncStartEnd(changed){
+  if (S.start>S.end){
+    if (changed==="start"){ S.end=S.start; $("end").value=S.end; $("endOut").textContent=S.end+"%"; }
+    else { S.start=S.end; $("start").value=S.start; $("startOut").textContent=S.start+"%"; }
+  }
+}
+function bindSeg(id,key,after){
+  const seg=$(id);
+  const sync=()=>seg.querySelectorAll("button").forEach(b=>b.setAttribute("aria-pressed", String(b.dataset.v===S[key])));
+  sync();
+  seg.addEventListener("click",e=>{ const b=e.target.closest("button"); if(!b) return; S[key]=b.dataset.v; sync(); if(after) after(); schedule(); });
+}
+function syncShape(){
+  const sh=S.shape;
+  $("angleField").style.display=sh==="linear"?"":"none";
+  $("invertField").style.display=sh==="linear"?"none":"";
+  $("invertLabel").textContent=sh==="matte"?"Dense in dark areas":"Dense at the edges";
+  $("matteField").style.display=sh==="matte"?"":"none";
+  $("handleHint").style.display=sh==="matte"?"none":"";
+  $("radialTools").style.display=sh==="radial"?"":"none";
+  syncHandleBtn();
+}
+function syncDir(){
+  $("dirSeg").querySelectorAll("button").forEach(b=>b.setAttribute("aria-pressed", String(+b.dataset.a===S.angle)));
+}
+
+function renderColors(){
+  const list=$("colorList");
+  list.innerHTML="";
+  S.colors.forEach((o,i)=>{
+    delete o.size;
+    const card=document.createElement("div");
+    card.className="color-card";
+    card.innerHTML=`
+      <div class="color-head">
+        <button type="button" class="swatch-btn" data-target="${i}" aria-label="Choose color ${i+1}" aria-haspopup="dialog" aria-expanded="false"><span></span></button>
+        <input type="color" class="native-picker" tabindex="-1" aria-hidden="true">
+        <input class="hex" maxlength="7" aria-label="Color ${i+1} hex">
+        <button class="icon-btn" aria-label="Remove color ${i+1}" title="Remove">×</button>
+      </div>
+      <div class="field">
+        <div class="row"><label>Scatter rate</label><output></output></div>
+        <input type="range" min="0" max="100" step="1" data-k="rate" aria-label="Color ${i+1} scatter rate">
+      </div>
+      <div class="field">
+        <div class="row"><label>Reach</label><output></output></div>
+        <input type="range" min="1" max="100" step="1" data-k="reach" aria-label="Color ${i+1} reach">
+      </div>`;
+    const sbtn=card.querySelector(".swatch-btn"), picker=card.querySelector('input[type="color"]'), hex=card.querySelector(".hex"), rm=card.querySelector(".icon-btn");
+    sbtn.addEventListener("click",()=>{
+      if(popCtx&&popCtx.anchor===sbtn){ closePalette(true); return; }
+      openPalette(sbtn,PALETTE,o.hex,h=>{ o.hex=h; picker.value=h; hex.value=h.toUpperCase(); schedule(); },picker);
+    });
+    picker.value=o.hex; hex.value=o.hex.toUpperCase();
+    picker.addEventListener("input",()=>{ o.hex=picker.value; hex.value=o.hex.toUpperCase(); schedule(); });
+    hex.addEventListener("change",()=>{ if(validHex(hex.value)){ o.hex=normHex(hex.value); picker.value=o.hex; schedule(); } hex.value=o.hex.toUpperCase(); });
+    rm.disabled=S.colors.length<=1;
+    rm.style.opacity=rm.disabled?.35:1;
+    rm.addEventListener("click",()=>{ S.colors.splice(i,1); renderColors(); schedule(); });
+    card.querySelectorAll("input[type=range]").forEach(r=>{
+      const k=r.dataset.k, out=r.parentElement.querySelector("output");
+      r.value=o[k]; out.textContent=o[k]+"%";
+      r.addEventListener("input",()=>{ o[k]=parseFloat(r.value); out.textContent=o[k]+"%"; schedule(); });
+    });
+    list.appendChild(card);
+  });
+  $("addColor").disabled=S.colors.length>=8;
+}
+
+function initAll(){
+  ensureGeom();
+  syncHandleBtn();
+  bindRange("cell","cell",v=>v+" px");
+  bindRange("angle","angle",v=>v+"°");
+  bindRange("start","start",v=>v+"%");
+  bindRange("end","end",v=>v+"%");
+  bindRange("curve","curve",v=>(+v).toFixed(2));
+  $("angle").addEventListener("input",()=>rotateLinTo(S.angle));
+  $("angle").addEventListener("input",syncDir);
+  bindSeg("modeSeg","mode");
+  bindSeg("shapeSeg","shape",syncShape);
+  if(S.matteFit==null) S.matteFit="stretch";
+  if(S.matteBlur==null) S.matteBlur=0;
+  bindSeg("fitSeg","matteFit");
+  bindRange("matteBlur","matteBlur",v=>v+" px");
+  syncShape(); syncDir();
+  $("dirSeg").addEventListener("click",e=>{
+    const b=e.target.closest("button"); if(!b) return;
+    S.angle=+b.dataset.a; S.lin=angleToLin(S.angle); $("angle").value=S.angle; $("angleOut").textContent=S.angle+"°"; syncDir(); schedule();
+  });
+  $("invert").checked=!!S.invert;
+  $("invert").addEventListener("change",e=>{ S.invert=e.target.checked; schedule(); });
+
+  $("baseColor").value=S.base; $("baseHex").value=S.base.toUpperCase();
+  $("baseColor").addEventListener("input",e=>{ S.base=e.target.value; $("baseHex").value=S.base.toUpperCase(); schedule(); });
+  $("baseHex").addEventListener("change",e=>{ const v=e.target.value; if(validHex(v)){ S.base=normHex(v); $("baseColor").value=S.base; schedule(); } e.target.value=S.base.toUpperCase(); });
+
+  $("w").value=S.w; $("h").value=S.h;
+  ["w","h"].forEach(k=>$(k).addEventListener("change",e=>{
+    const v=Math.max(16,Math.min(8000,parseInt(e.target.value)||S[k])); S[k]=v; e.target.value=v; schedule();
+  }));
+
+  renderColors();
+  render();
+}
+
+$("addColor").addEventListener("click",()=>{
+  const last=S.colors[S.colors.length-1];
+  S.colors.push({hex:last?last.hex:"#999999", rate:30, reach:80});
+  renderColors(); schedule();
+});
+$("reseed").addEventListener("click",()=>{ S.seed=(S.seed%9973)+1+Math.floor(Math.random()*500); schedule(); });
+$("reset").addEventListener("click",()=>{
+  S=structuredClone(DEFAULTS);
+  rebuildUI();
+});
+function rand(a,b){ return a+Math.random()*(b-a); }
+function pick(arr){ return arr[Math.floor(Math.random()*arr.length)]; }
+$("lucky").addEventListener("click",()=>{
+  S.colors.forEach(o=>{
+    o.rate=Math.round(rand(25,85));
+    o.reach=Math.round(rand(25,100));
+  });
+  S.mode=pick(["random","even","ordered"]);
+  S.seed=1+Math.floor(Math.random()*9999);
+  if(!(S.shape==="matte"&&matteImg)) S.shape=Math.random()<0.75?"linear":"radial";
+  S.angle=Math.random()<0.6?pick([0,45,90,135,180,225,270,315]):Math.floor(Math.random()*360);
+  {
+    const W=S.w, H=S.h, base=angleToLin(S.angle), f=rand(0.5,1.2);
+    const mx=(base.x0+base.x1)/2*W+rand(-0.2,0.2)*W, my=(base.y0+base.y1)/2*H+rand(-0.2,0.2)*H;
+    const hx=(base.x1-base.x0)*W/2*f, hy=(base.y1-base.y0)*H/2*f;
+    S.lin={x0:(mx-hx)/W, y0:(my-hy)/H, x1:(mx+hx)/W, y1:(my+hy)/H};
+  }
+  S.rad={cx:rand(0.25,0.75), cy:rand(0.25,0.75), rx:rand(0.25,0.7), ry:rand(0.25,0.7), rot:rand(0,Math.PI)};
+  S.invert=Math.random()<0.5;
+  S.start=Math.round(rand(0,35));
+  S.end=Math.min(100,Math.round(S.start+rand(30,100-S.start)));
+  S.curve=Math.round(rand(0.5,2.5)*20)/20;
+  rebuildUI();
+});
+function rebuildUI(){
+  document.querySelectorAll("#modeSeg, #shapeSeg, #dirSeg, #fitSeg").forEach(el=>{ const c=el.cloneNode(true); el.replaceWith(c); });
+  ["cell","angle","start","end","curve","invert","matteBlur","baseColor","baseHex","w","h"].forEach(id=>{ const el=$(id); const c=el.cloneNode(true); el.replaceWith(c); });
+  initAll();
+}
+
+// ---- Matte ----
+function matteLuma(cols,rows,c,W,H){
+  if(!matteImg) return null;
+  mcv.width=cols; mcv.height=rows;
+  const mx=mcv.getContext("2d",{willReadFrequently:true});
+  mx.filter="none";
+  mx.fillStyle="#000"; mx.fillRect(0,0,cols,rows);
+  const iw=matteImg.naturalWidth, ih=matteImg.naturalHeight;
+  let dx=0, dy=0, dw=W, dh=H;
+  if (S.matteFit==="cover"||S.matteFit==="contain"){
+    const s=S.matteFit==="cover"?Math.max(W/iw,H/ih):Math.min(W/iw,H/ih);
+    dw=iw*s; dh=ih*s; dx=(W-dw)/2; dy=(H-dh)/2;
+  }
+  mx.imageSmoothingEnabled=true; mx.imageSmoothingQuality="high";
+  mx.drawImage(matteImg,dx/c,dy/c,dw/c,dh/c);
+  const d=mx.getImageData(0,0,cols,rows).data;
+  let out=new Float32Array(cols*rows);
+  for(let i=0,k=0;i<out.length;i++,k+=4) out[i]=(0.2126*d[k]+0.7152*d[k+1]+0.0722*d[k+2])/255;
+  if (S.matteBlur>0){
+    const sigma=S.matteBlur/c;
+    const r=Math.max(1,Math.round(sigma*0.9));
+    out=boxBlur(out,cols,rows,r);
+    out=boxBlur(out,cols,rows,r);
+    out=boxBlur(out,cols,rows,r);
+  }
+  return out;
+}
+// separable box blur with clamped edges (three passes approximate a gaussian)
+function boxBlur(src,w,h,r){
+  const tmp=new Float32Array(w*h), dst=new Float32Array(w*h), n=2*r+1;
+  for(let y=0;y<h;y++){
+    const row=y*w; let acc=0;
+    for(let i=-r;i<=r;i++) acc+=src[row+Math.min(w-1,Math.max(0,i))];
+    for(let x=0;x<w;x++){
+      tmp[row+x]=acc/n;
+      acc+=src[row+Math.min(w-1,x+r+1)]-src[row+Math.max(0,x-r)];
+    }
+  }
+  for(let x=0;x<w;x++){
+    let acc=0;
+    for(let i=-r;i<=r;i++) acc+=tmp[Math.min(h-1,Math.max(0,i))*w+x];
+    for(let y=0;y<h;y++){
+      dst[y*w+x]=acc/n;
+      acc+=tmp[Math.min(h-1,y+r+1)*w+x]-tmp[Math.max(0,y-r)*w+x];
+    }
+  }
+  return dst;
+}
+function showMatte(src,name){
+  $("matteThumb").src=src; $("matteThumb").hidden=false;
+  $("matteName").textContent=name;
+  $("matteSize").disabled=false;
+  $("matteDelete").disabled=false;
+}
+function loadMatte(src,name,select){
+  const im=new Image();
+  im.onload=()=>{
+    matteImg=im;
+    showMatte(src,name);
+    if(select){ S.shape="matte"; rebuildUI(); } else schedule();
+  };
+  im.onerror=()=>flash("That file couldn’t be read as an image. Try a PNG or JPG.");
+  im.src=src;
+}
+$("matteUpload").addEventListener("click",()=>$("matteFile").click());
+$("matteFile").addEventListener("change",e=>{
+  const f=e.target.files&&e.target.files[0];
+  if(!f) return;
+  const r=new FileReader();
+  r.onload=()=>{
+    loadMatte(r.result,f.name,true);
+    try{ localStorage.setItem(KEY+":matte",JSON.stringify({src:r.result,name:f.name})); }catch(err){}
+  };
+  r.readAsDataURL(f);
+  e.target.value="";
+});
+$("matteDelete").addEventListener("click",()=>{
+  matteImg=null;
+  $("matteThumb").hidden=true; $("matteThumb").removeAttribute("src");
+  $("matteName").textContent="No matte yet";
+  $("matteSize").disabled=true;
+  $("matteDelete").disabled=true;
+  try{ localStorage.removeItem(KEY+":matte"); }catch(err){}
+  S.matteFit="stretch"; S.matteBlur=0;
+  if(S.shape==="matte") S.shape="linear";
+  rebuildUI();
+  flash("Matte deleted");
+});
+$("matteSize").addEventListener("click",()=>{
+  if(!matteImg) return;
+  S.w=Math.max(16,Math.min(8000,matteImg.naturalWidth));
+  S.h=Math.max(16,Math.min(8000,matteImg.naturalHeight));
+  rebuildUI();
+});
+
+// ---- Gradient geometry & on-canvas handles ----
+function angleToLin(deg){
+  const W=S.w, H=S.h, a=deg*Math.PI/180, ca=Math.cos(a), sa=Math.sin(a);
+  const L=(Math.abs(W*ca)+Math.abs(H*sa))/2;
+  return {x0:(W/2-ca*L)/W, y0:(H/2-sa*L)/H, x1:(W/2+ca*L)/W, y1:(H/2+sa*L)/H};
+}
+function linAngle(){
+  const d=Math.atan2((S.lin.y1-S.lin.y0)*S.h,(S.lin.x1-S.lin.x0)*S.w)*180/Math.PI;
+  return Math.round((d+360)%360)%360;
+}
+function rotateLinTo(deg){
+  const W=S.w, H=S.h;
+  const mx=(S.lin.x0+S.lin.x1)/2*W, my=(S.lin.y0+S.lin.y1)/2*H;
+  const half=Math.hypot((S.lin.x1-S.lin.x0)*W,(S.lin.y1-S.lin.y0)*H)/2;
+  const a=deg*Math.PI/180, hx=Math.cos(a)*half, hy=Math.sin(a)*half;
+  S.lin={x0:(mx-hx)/W, y0:(my-hy)/H, x1:(mx+hx)/W, y1:(my+hy)/H};
+}
+function ensureGeom(){
+  if(!S.lin) S.lin=angleToLin(S.angle||0);
+  if(!S.rad) S.rad={cx:0.5,cy:0.5,rx:0.45,ry:0.45,rot:0};
+  if(S.showHandles==null) S.showHandles=true;
+  S.anim=Object.assign({in:1.5, hold:1, out:1.5, inEase:[0.33,1,0.68,1], outEase:[0.32,0,0.67,0], soft:25, loop:true, type:"transition", dLen:3, crazy:35, flow:0, cursor:25, trail:0.4}, S.anim||{});
+  S.anim.inEase=toBez(S.anim.inEase); S.anim.outEase=toBez(S.anim.outEase);
+  S.angle=linAngle();
+}
+function syncAngleUI(){
+  S.angle=linAngle();
+  $("angle").value=S.angle; $("angleOut").textContent=S.angle+"°";
+  syncDir();
+}
+function syncHandleBtn(){
+  const b=$("toggleHandles");
+  b.textContent=S.showHandles?"Hide handles":"Show handles";
+  b.style.display=(S.shape==="matte"||animMode)?"none":"";
+}
+function drawOverlay(){
+  const ov=$("overlay");
+  if(!grid||animMode||!S.showHandles||S.shape==="matte"||!view.offsetWidth){ ov.style.display="none"; $("edgeLayer").style.display="none"; return; }
+  ov.style.display="block";
+  ov.style.left=view.offsetLeft+"px"; ov.style.top=view.offsetTop+"px";
+  ov.style.width=view.offsetWidth+"px"; ov.style.height=view.offsetHeight+"px";
+  const W=grid.W, H=grid.H, k=W/view.offsetWidth;
+  ov.setAttribute("viewBox",`0 0 ${W} ${H}`);
+  const c0=S.colors[0]?S.colors[0].hex:"#888888", cb=S.base;
+  const NS='vector-effect="non-scaling-stroke"';
+  const sq=(x,y,fill,h,cur)=>`<rect data-h="${h}" x="${x-7*k}" y="${y-7*k}" width="${14*k}" height="${14*k}" rx="${3*k}" fill="${fill}" stroke="#fff" stroke-width="2.5" ${NS} style="cursor:${cur}"/>`;
+  const dot=(x,y,h)=>`<circle data-h="${h}" cx="${x}" cy="${y}" r="${6.5*k}" fill="#fff" stroke="#1a2029" stroke-width="1.5" ${NS} style="cursor:grab"/>`;
+  const ln=(x1,y1,x2,y2,dash)=>`<line x1="${x1}" y1="${y1}" x2="${x2}" y2="${y2}" stroke="#000" stroke-opacity=".45" stroke-width="3.5" ${NS}/><line x1="${x1}" y1="${y1}" x2="${x2}" y2="${y2}" stroke="#fff" stroke-width="1.5" ${dash?'stroke-dasharray="4 4"':''} ${NS}/>`;
+  const dash=(x1,y1,x2,y2)=>`<line x1="${x1}" y1="${y1}" x2="${x2}" y2="${y2}" stroke="#000" stroke-opacity=".5" stroke-width="4" stroke-linecap="round" stroke-dasharray="0.01 7" ${NS}/><line x1="${x1}" y1="${y1}" x2="${x2}" y2="${y2}" stroke="#fff" stroke-width="2.2" stroke-linecap="round" stroke-dasharray="0.01 7" ${NS}/>`;
+  const diamond=(i)=>{ const p=reachPos(i); const o=S.colors[i]; return `<rect data-h="r${i}" x="${-6*k}" y="${-6*k}" width="${12*k}" height="${12*k}" transform="translate(${p.x} ${p.y}) rotate(45)" fill="${o.hex}" stroke="#fff" stroke-width="2.5" ${NS} style="cursor:grab"><title>Reach of color ${i+1}: ${o.reach}%</title></rect>`; };
+  let h=`<defs><clipPath id="cvClip"><rect width="${W}" height="${H}"/></clipPath></defs>`;
+  if (S.shape==="linear"){
+    const X0=S.lin.x0*W, Y0=S.lin.y0*H, X1=S.lin.x1*W, Y1=S.lin.y1*H;
+    const dx=X1-X0, dy=Y1-Y0, len=Math.hypot(dx,dy)||1, nx=-dy/len*7*k, ny=dx/len*7*k;
+    h+=ln(X0,Y0,X1,Y1);
+    h+=`<line data-h="line" x1="${X0}" y1="${Y0}" x2="${X1}" y2="${Y1}" stroke="transparent" stroke-width="16" ${NS} style="cursor:move"/>`;
+    [S.start/100,S.end/100].forEach(f=>{ const px=X0+dx*f, py=Y0+dy*f; h+=ln(px-nx,py-ny,px+nx,py+ny); });
+    {
+      const len2=Math.hypot(W,H)*2, ux=-dy/len, uy=dx/len;
+      let g="";
+      S.colors.forEach((o,i)=>{ const f=reachFrac(i), px=X0+dx*f, py=Y0+dy*f; g+=dash(px-ux*len2,py-uy*len2,px+ux*len2,py+uy*len2); });
+      h+=`<g clip-path="url(#cvClip)">${g}</g>`;
+    }
+    h+=sq(X0,Y0,c0,"p0","grab")+sq(X1,Y1,cb,"p1","grab");
+    S.colors.forEach((o,i)=>{ h+=diamond(i); });
+  } else {
+    const rmax=Math.hypot(W,H)/2, CX=S.rad.cx*W, CY=S.rad.cy*H;
+    const rxp=S.rad.rx*rmax, ryp=S.rad.ry*rmax, cr=Math.cos(S.rad.rot), sr=Math.sin(S.rad.rot), deg=S.rad.rot*180/Math.PI;
+    const ell=(f,dash)=>f>0?`<g transform="translate(${CX} ${CY}) rotate(${deg})"><ellipse rx="${rxp*f}" ry="${ryp*f}" fill="none" stroke="#000" stroke-opacity=".45" stroke-width="3.5" ${NS}/><ellipse rx="${rxp*f}" ry="${ryp*f}" fill="none" stroke="#fff" stroke-width="1.5" ${dash?'stroke-dasharray="4 4"':''} ${NS}/></g>`:"";
+    h+=ell(1,false);
+    [S.start/100,S.end/100].forEach(f=>{ if(f>0&&f<1) h+=ell(S.invert?1-f:f,true); });
+    {
+      let g="";
+      S.colors.forEach((o,i)=>{
+        const f=reachFrac(i), s=S.invert?1-f:f;
+        if(s<=0) return;
+        g+=`<g transform="translate(${CX} ${CY}) rotate(${deg})"><ellipse rx="${rxp*s}" ry="${ryp*s}" fill="none" stroke="#000" stroke-opacity=".5" stroke-width="4" stroke-linecap="round" stroke-dasharray="0.01 7" ${NS}/><ellipse rx="${rxp*s}" ry="${ryp*s}" fill="none" stroke="#fff" stroke-width="2.2" stroke-linecap="round" stroke-dasharray="0.01 7" ${NS}/></g>`;
+      });
+      h+=`<g clip-path="url(#cvClip)">${g}</g>`;
+    }
+    const AX=CX+cr*rxp, AY=CY+sr*rxp, BX=CX-sr*ryp, BY=CY+cr*ryp;
+    h+=ln(CX,CY,AX,AY)+ln(CX,CY,BX,BY);
+    h+=sq(CX,CY,c0,"c","move")+dot(AX,AY,"a")+dot(BX,BY,"b");
+    S.colors.forEach((o,i)=>{ h+=diamond(i); });
+  }
+  ov.innerHTML=h;
+  drawEdges(k,c0,cb);
+}
+// handles outside the visible stage become arrows pinned to its edge
+function drawEdges(k,c0,cb){
+  const el=$("edgeLayer"), si=$("stageInner");
+  const sw=si.clientWidth, sh=si.clientHeight;
+  el.style.display="block";
+  el.style.left=si.offsetLeft+"px"; el.style.top=si.offsetTop+"px";
+  el.style.width=sw+"px"; el.style.height=sh+"px";
+  el.setAttribute("viewBox",`0 0 ${sw} ${sh}`);
+  const vr=view.getBoundingClientRect(), sr=si.getBoundingClientRect();
+  const ox=vr.left-sr.left-si.clientLeft, oy=vr.top-sr.top-si.clientTop;
+  const list = S.shape==="linear"
+    ? [["p0",c0,true],["p1",cb,true]]
+    : [["c",c0,true],["a","#fff",false],["b","#fff",false]];
+  S.colors.forEach((o,i)=>list.push(["r"+i,o.hex,true]));
+  const m=36, cx=sw/2, cy=sh/2;
+  let out="";
+  list.forEach(([h,fill,square])=>{
+    const p=handlePos(h); if(!p) return;
+    const sx=ox+p.x/k, sy=oy+p.y/k;
+    if (sx>=8&&sx<=sw-8&&sy>=8&&sy<=sh-8) return;
+    const dx=sx-cx, dy=sy-cy;
+    const tx=dx?((sw/2-m)/Math.abs(dx)):Infinity, ty=dy?((sh/2-m)/Math.abs(dy)):Infinity;
+    const s=Math.min(tx,ty,1), ex=cx+dx*s, ey=cy+dy*s;
+    const ang=Math.atan2(dy,dx)*180/Math.PI;
+    const body = square
+      ? `<rect x="-8" y="-8" width="16" height="16" rx="3" fill="${fill}" stroke="#fff" stroke-width="2.5"/>`
+      : `<circle r="7.5" fill="#fff" stroke="#1a2029" stroke-width="1.5"/>`;
+    out+=`<g data-h="${h}" transform="translate(${ex} ${ey})"><circle r="28" fill="transparent"/><g transform="rotate(${ang})"><path d="M28 0 L13 -10 L13 10 Z" fill="#fff" stroke="#1a2029" stroke-width="1.5" stroke-linejoin="round"/></g>${body}</g>`;
+  });
+  el.innerHTML=out;
+}
+function reachFrac(i){
+  const s=S.start/100, e=S.end/100;
+  return s+(e-s)*(S.colors[i].reach/100);
+}
+function reachPos(i){
+  const W=grid.W, H=grid.H, n=S.colors.length, f=reachFrac(i);
+  const k=W/Math.max(1,view.offsetWidth), spread=i-(n-1)/2;
+  if (S.shape==="linear"){
+    const X0=S.lin.x0*W, Y0=S.lin.y0*H, dx=S.lin.x1*W-X0, dy=S.lin.y1*H-Y0, len=Math.hypot(dx,dy)||1;
+    const off=spread*22*k;
+    return {x:X0+dx*f-dy/len*off, y:Y0+dy*f+dx/len*off};
+  }
+  const rmax=Math.hypot(W,H)/2, CX=S.rad.cx*W, CY=S.rad.cy*H;
+  const g=Math.max(0,S.invert?1-f:f), th=spread*0.35;
+  const lx=Math.cos(th)*S.rad.rx*rmax*g, ly=Math.sin(th)*S.rad.ry*rmax*g;
+  const cr=Math.cos(S.rad.rot), sr=Math.sin(S.rad.rot);
+  return {x:CX+lx*cr-ly*sr, y:CY+lx*sr+ly*cr};
+}
+function setReachFrom(i,p){
+  const W=grid.W, H=grid.H; let f;
+  if (S.shape==="linear"){
+    const X0=S.lin.x0*W, Y0=S.lin.y0*H, dx=S.lin.x1*W-X0, dy=S.lin.y1*H-Y0;
+    f=((p.x-X0)*dx+(p.y-Y0)*dy)/((dx*dx+dy*dy)||1);
+  } else {
+    const rmax=Math.hypot(W,H)/2, CX=S.rad.cx*W, CY=S.rad.cy*H, cr=Math.cos(S.rad.rot), sr=Math.sin(S.rad.rot);
+    const ox=p.x-CX, oy=p.y-CY, u=ox*cr+oy*sr, v=-ox*sr+oy*cr;
+    const g=Math.hypot(u/Math.max(1e-6,S.rad.rx*rmax), v/Math.max(1e-6,S.rad.ry*rmax));
+    f=S.invert?1-g:g;
+  }
+  const s=S.start/100, e=S.end/100;
+  if (e-s<1e-4) return;
+  const r=Math.round(Math.max(0.01,Math.min(1,(f-s)/(e-s)))*100);
+  S.colors[i].reach=r;
+  const inp=document.querySelectorAll('#colorList input[data-k="reach"]')[i];
+  if (inp){ inp.value=r; inp.parentElement.querySelector("output").textContent=r+"%"; }
+}
+function handlePos(h){
+  if(h[0]==="r") return S.colors[+h.slice(1)]?reachPos(+h.slice(1)):null;
+  const W=grid.W, H=grid.H;
+  if(h==="p0") return {x:S.lin.x0*W, y:S.lin.y0*H};
+  if(h==="p1") return {x:S.lin.x1*W, y:S.lin.y1*H};
+  const rmax=Math.hypot(W,H)/2, CX=S.rad.cx*W, CY=S.rad.cy*H, cr=Math.cos(S.rad.rot), sr=Math.sin(S.rad.rot);
+  if(h==="c") return {x:CX, y:CY};
+  if(h==="a") return {x:CX+cr*S.rad.rx*rmax, y:CY+sr*S.rad.rx*rmax};
+  if(h==="b") return {x:CX-sr*S.rad.ry*rmax, y:CY+cr*S.rad.ry*rmax};
+  return null;
+}
+(function(){
+  const ov=$("overlay");
+  let drag=null;
+  const clampN=v=>Math.max(-1,Math.min(2,v));
+  const snap=(a,step)=>Math.round(a/step)*step;
+  function toCanvas(e){ const r=view.getBoundingClientRect(); return {x:(e.clientX-r.left)/r.width*grid.W, y:(e.clientY-r.top)/r.height*grid.H}; }
+  const edge=$("edgeLayer");
+  const onDown=e=>{
+    const t=e.target.closest("[data-h]"); if(!t||!grid) return;
+    e.preventDefault();
+    drag={h:t.dataset.h, start:toCanvas(e), lin:{...S.lin}, orig:handlePos(t.dataset.h)};
+    e.currentTarget.setPointerCapture(e.pointerId);
+    e.currentTarget.style.cursor="grabbing";
+  };
+  const onMove=e=>{
+    if(!drag) return;
+    const W=grid.W, H=grid.H, raw=toCanvas(e);
+    const p=drag.orig?{x:drag.orig.x+raw.x-drag.start.x, y:drag.orig.y+raw.y-drag.start.y}:raw;
+    if (drag.h==="p0"||drag.h==="p1"){
+      let x=p.x, y=p.y;
+      const ox=(drag.h==="p0"?S.lin.x1:S.lin.x0)*W, oy=(drag.h==="p0"?S.lin.y1:S.lin.y0)*H;
+      if (e.shiftKey){ const a=snap(Math.atan2(y-oy,x-ox),Math.PI/12), d=Math.hypot(x-ox,y-oy); x=ox+Math.cos(a)*d; y=oy+Math.sin(a)*d; }
+      if (Math.hypot(x-ox,y-oy)<2) return;
+      if (drag.h==="p0"){ S.lin.x0=clampN(x/W); S.lin.y0=clampN(y/H); }
+      else { S.lin.x1=clampN(x/W); S.lin.y1=clampN(y/H); }
+      syncAngleUI();
+    } else if (drag.h[0]==="r"){
+      setReachFrom(+drag.h.slice(1),p);
+    } else if (drag.h==="line"){
+      const dx=(p.x-drag.start.x)/W, dy=(p.y-drag.start.y)/H;
+      S.lin={x0:clampN(drag.lin.x0+dx), y0:clampN(drag.lin.y0+dy), x1:clampN(drag.lin.x1+dx), y1:clampN(drag.lin.y1+dy)};
+    } else {
+      const rmax=Math.hypot(W,H)/2, CX=S.rad.cx*W, CY=S.rad.cy*H;
+      if (drag.h==="c"){ S.rad.cx=clampN(p.x/W); S.rad.cy=clampN(p.y/H); }
+      else if (drag.h==="a"){
+        let a=Math.atan2(p.y-CY,p.x-CX); if(e.shiftKey) a=snap(a,Math.PI/12);
+        S.rad.rot=a; S.rad.rx=Math.max(0.01,Math.hypot(p.x-CX,p.y-CY)/rmax);
+      } else if (drag.h==="b"){
+        const proj=(p.x-CX)*(-Math.sin(S.rad.rot))+(p.y-CY)*Math.cos(S.rad.rot);
+        S.rad.ry=Math.max(0.01,Math.abs(proj)/rmax);
+      }
+    }
+    schedule();
+  };
+  const end=()=>{ if(!drag) return; drag=null; ov.style.cursor=""; edge.style.cursor=""; persist(); };
+  [ov,edge].forEach(l=>{
+    l.addEventListener("pointerdown",onDown);
+    l.addEventListener("pointermove",onMove);
+    l.addEventListener("pointerup",end);
+    l.addEventListener("pointercancel",end);
+  });
+  $("toggleHandles").addEventListener("click",()=>{ S.showHandles=!S.showHandles; syncHandleBtn(); drawOverlay(); persist(); });
+  $("centerRadial").addEventListener("click",()=>{ S.rad.cx=0.5; S.rad.cy=0.5; schedule(); });
+  $("circleRadial").addEventListener("click",()=>{ const m=(S.rad.rx+S.rad.ry)/2; S.rad.rx=m; S.rad.ry=m; schedule(); });
+  if (window.ResizeObserver) new ResizeObserver(()=>drawOverlay()).observe($("stageInner"));
+  window.addEventListener("resize",drawOverlay);
+})();
+
+initAll();
+try{
+  const m=JSON.parse(localStorage.getItem(KEY+":matte"));
+  if(m&&m.src) loadMatte(m.src,m.name||"Saved matte",false);
+}catch(e){}
+
+// ---- Easing graph editor ----
+function miniCurve(p){
+  let d="";
+  for(let i=0;i<=24;i++){ const x=i/24, y=bez(p,x); d+=(i?"L":"M")+(4+x*36).toFixed(1)+" "+(26-y*22).toFixed(1); }
+  return `<svg width="44" height="30" viewBox="0 0 44 30" aria-hidden="true"><rect x="4" y="4" width="36" height="22" fill="none" stroke="currentColor" stroke-opacity=".2"/><path d="${d}" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>`;
+}
+function syncEaseBtns(){
+  [["animInEaseBtn","inEase"],["animOutEaseBtn","outEase"]].forEach(([id,k])=>{
+    const p=S.anim[k];
+    $(id).innerHTML=`${miniCurve(p)}<span>${easeName(p)}</span><span class="chev">Edit</span>`;
+    $(id).setAttribute("aria-label",`${k==="inEase"?"Come in":"Go out"} easing: ${easeName(p)}. Edit`);
+  });
+}
+const easePop=document.createElement("div");
+easePop.id="easePop"; easePop.setAttribute("role","dialog"); easePop.setAttribute("aria-label","Edit easing"); easePop.hidden=true;
+document.body.appendChild(easePop);
+let easeCtx=null;
+const EX0=24, EX1=212, EY=v=>14+(1.3-v)/1.6*232;
+const EXp=x=>EX0+x*(EX1-EX0);
+function drawEase(){
+  if(!easeCtx) return;
+  const p=S.anim[easeCtx.key], [x1,y1,x2,y2]=p;
+  let d="";
+  for(let i=0;i<=60;i++){ const x=i/60, y=bez(p,x); d+=(i?"L":"M")+EXp(x).toFixed(1)+" "+EY(y).toFixed(1); }
+  easePop.querySelector("#easeSvg").innerHTML=`
+    <rect class="box" x="${EX0}" y="${EY(1)}" width="${EX1-EX0}" height="${EY(0)-EY(1)}"/>
+    <line class="diag" x1="${EXp(0)}" y1="${EY(0)}" x2="${EXp(1)}" y2="${EY(1)}"/>
+    <text class="lbl" x="${EX0}" y="${EY(0)+14}">Start</text>
+    <text class="lbl" x="${EX1}" y="${EY(1)-6}" text-anchor="end">End</text>
+    <line class="arm" x1="${EXp(0)}" y1="${EY(0)}" x2="${EXp(x1)}" y2="${EY(y1)}"/>
+    <line class="arm" x1="${EXp(1)}" y1="${EY(1)}" x2="${EXp(x2)}" y2="${EY(y2)}"/>
+    <path class="curve" d="${d}"/>
+    <circle class="knob" data-k="1" cx="${EXp(x1)}" cy="${EY(y1)}" r="8"/>
+    <circle class="knob" data-k="2" cx="${EXp(x2)}" cy="${EY(y2)}" r="8"/>`;
+  easePop.querySelectorAll(".preset-row button").forEach(b=>b.setAttribute("aria-pressed",String(EASE_PRESETS[b.dataset.p].every((v,i)=>Math.abs(v-p[i])<0.006))));
+  easePop.querySelector("#easeCode").textContent=`cubic-bezier(${p.map(v=>+v.toFixed(2)).join(", ")})`;
+}
+function easeChanged(){
+  drawEase(); syncEaseBtns();
+  if(!playing) showFrame();
+  persist();
+}
+function openEase(btn){
+  closeEase(false);
+  const key=btn.dataset.key;
+  easePop.innerHTML=`<p class="pop-title">${key==="inEase"?"Come in":"Go out"} easing · drag the two handles</p>
+    <svg id="easeSvg" viewBox="0 0 236 260"></svg>
+    <div class="preset-row">${Object.keys(EASE_PRESETS).map(k=>`<button type="button" class="btn small" data-p="${k}">${EASE_NAMES[k]}</button>`).join("")}</div>
+    <p class="hint" id="easeCode"></p>`;
+  easeCtx={key,btn,drag:null};
+  easePop.hidden=false;
+  drawEase();
+  const r=btn.getBoundingClientRect(), pw=easePop.offsetWidth, ph=easePop.offsetHeight;
+  const left=Math.min(window.innerWidth-pw-8,Math.max(8,r.left));
+  let top=r.bottom+6; if(top+ph>window.innerHeight-8) top=Math.max(8,r.top-ph-6);
+  easePop.style.left=left+"px"; easePop.style.top=top+"px";
+  btn.setAttribute("aria-expanded","true");
+  const svg=easePop.querySelector("#easeSvg");
+  const toVal=e=>{
+    const b=svg.getBoundingClientRect(), sx=(e.clientX-b.left)*236/b.width, sy=(e.clientY-b.top)*260/b.height;
+    const x=Math.max(0,Math.min(1,(sx-EX0)/(EX1-EX0)));
+    const y=Math.max(-0.3,Math.min(1.3,1.3-(sy-14)/232*1.6));
+    return [Math.round(x*100)/100, Math.round(y*100)/100];
+  };
+  svg.addEventListener("pointerdown",e=>{
+    const k=e.target.closest(".knob"); if(!k) return;
+    e.preventDefault(); easeCtx.drag=+k.dataset.k; svg.setPointerCapture(e.pointerId);
+  });
+  svg.addEventListener("pointermove",e=>{
+    if(!easeCtx||!easeCtx.drag) return;
+    const [x,y]=toVal(e), p=S.anim[easeCtx.key].slice();
+    if(easeCtx.drag===1){ p[0]=x; p[1]=y; } else { p[2]=x; p[3]=y; }
+    S.anim[easeCtx.key]=p; easeChanged();
+  });
+  const up=()=>{ if(easeCtx) easeCtx.drag=null; };
+  svg.addEventListener("pointerup",up); svg.addEventListener("pointercancel",up);
+  easePop.querySelector(".preset-row").addEventListener("click",e=>{
+    const b=e.target.closest("button[data-p]"); if(!b) return;
+    S.anim[easeCtx.key]=EASE_PRESETS[b.dataset.p].slice(); easeChanged();
+  });
+}
+function closeEase(focusBack){
+  if(!easeCtx) return;
+  easePop.hidden=true;
+  easeCtx.btn.setAttribute("aria-expanded","false");
+  if(focusBack) easeCtx.btn.focus();
+  easeCtx=null;
+}
+["animInEaseBtn","animOutEaseBtn"].forEach(id=>$(id).addEventListener("click",e=>{
+  const b=e.currentTarget;
+  if(easeCtx&&easeCtx.btn===b){ closeEase(true); return; }
+  openEase(b);
+}));
+document.addEventListener("pointerdown",e=>{ if(easeCtx&&!easePop.contains(e.target)&&!easeCtx.btn.contains(e.target)) closeEase(false); });
+document.addEventListener("keydown",e=>{ if(e.key==="Escape"&&easeCtx) closeEase(true); });
+window.addEventListener("resize",()=>closeEase(false));
+document.querySelector("aside").addEventListener("scroll",()=>closeEase(false));
+
+// ---- Animation ----
+function toBez(v){
+  if (Array.isArray(v)&&v.length===4&&v.every(n=>isFinite(n))) return v.map(Number);
+  return (EASE_PRESETS[v]||EASE_PRESETS.linear).slice();
+}
+function bez(p,x){
+  if (x<=0) return 0; if (x>=1) return 1;
+  const [x1,y1,x2,y2]=p;
+  const bx=t=>3*(1-t)*(1-t)*t*x1+3*(1-t)*t*t*x2+t*t*t;
+  let lo=0, hi=1, t=x;
+  for(let i=0;i<24;i++){ t=(lo+hi)/2; if(bx(t)<x) lo=t; else hi=t; }
+  return 3*(1-t)*(1-t)*t*y1+3*(1-t)*t*t*y2+t*t*t;
+}
+function easeName(p){
+  for (const k in EASE_PRESETS){ if (EASE_PRESETS[k].every((v,i)=>Math.abs(v-p[i])<0.006)) return EASE_NAMES[k]; }
+  return "Custom";
+}
+// ---- Interactive: a mini design follows the cursor, clicks radiate the full design from that point ----
+function isInter(){ return S.anim.type==="interactive"; }
+const inter={trail:[],bursts:[],raf:0,last:null};
+function interAssign(){
+  const idx=grid.idx, U=field.U, n=S.colors.length, now=performance.now();
+  const {W,H,c,cols,rows}=grid, A=S.anim;
+  const start=S.start/100, end=Math.max(S.end/100,start+0.001), curve=S.curve;
+  const rates=S.colors.map(o=>o.rate/100);
+  const ends=S.colors.map(o=>start+(end-start)*Math.max(0.01,o.reach/100));
+  const inv=S.shape==="radial"&&S.invert;
+  const rmax=Math.hypot(W,H)/2;
+  const radial=S.shape==="radial";
+  const rx=(radial?S.rad.rx:0.45)*rmax, ry=(radial?S.rad.ry:0.45)*rmax, rot=radial?S.rad.rot:0;
+  const cr=Math.cos(rot), sr=Math.sin(rot);
+  const gOf=(px,py,L)=>{ const ox=px-L.x, oy=py-L.y; return Math.hypot((ox*cr+oy*sr)/rx,(-ox*sr+oy*cr)/ry); };
+  // ---- trail: recent cursor points, strongest where fresh, gone after the trail length ----
+  const life=Math.max(0.05,A.trail);
+  inter.trail=inter.trail.filter(p=>(now-p.t)/1000<life);
+  let tq=null;
+  if (inter.trail.length){
+    tq=new Float32Array(idx.length);
+    const rad=Math.max(c,A.cursor/100*Math.min(W,H)*0.3);
+    for (const p of inter.trail){
+      const age=(now-p.t)/1000/life, strength=(1-age)*(1-age);
+      const r=rad*(0.55+0.45*(1-age));
+      const x0=Math.max(0,Math.floor((p.x-r)/c)), x1=Math.min(cols-1,Math.floor((p.x+r)/c));
+      const y0=Math.max(0,Math.floor((p.y-r)/c)), y1=Math.min(rows-1,Math.floor((p.y+r)/c));
+      for (let y=y0;y<=y1;y++) for (let x=x0;x<=x1;x++){
+        const d=Math.hypot((x+0.5)*c-p.x,(y+0.5)*c-p.y)/r;
+        if (d>=1) continue;
+        const q=strength*(1-d*d), ci=y*cols+x;
+        if (q>tq[ci]) tq[ci]=q;
+      }
+    }
+  }
+  // ---- click bursts: come in, then go straight out (no hold) ----
+  const T=A.in+A.out;
+  inter.bursts=inter.bursts.filter(b=>(now-b.t0)/1000<T);
+  const layers=[];
+  for (let i=inter.bursts.length-1;i>=0;i--){
+    const b=inter.bursts[i], age=(now-b.t0)/1000;
+    let gmaxB=0; [[0,0],[W,0],[0,H],[W,H]].forEach(([x,y])=>{ gmaxB=Math.max(gmaxB,gOf(x,y,b)); });
+    if (inv) gmaxB=Math.max(1,field.gmax);
+    const w=Math.max(0.02,gmaxB*A.soft/100);
+    if (age<A.in) layers.push({x:b.x,y:b.y,s:Math.max(1e-4,bez(A.inEase,age/A.in)),clip:gmaxB,w,out:null});
+    else {
+      const lo=(inv?Math.max(0,1-Math.max(...ends)):0)-w*0.5, hi=gmaxB+w;
+      const f=lo+(hi-lo)*bez(A.outEase,Math.min(1,(age-A.in)/A.out));
+      layers.push({x:b.x,y:b.y,s:1,clip:gmaxB,w,out:f});
+    }
+  }
+  const p=new Float64Array(n);
+  const trailEnd=Math.max(...ends);
+  const pick=(t,v,u)=>{
+    let sum=0;
+    for (let i=0;i<n;i++){ const d=t<=start?1:t>=ends[i]?0:Math.pow(1-(t-start)/(ends[i]-start),curve); p[i]=rates[i]*d; sum+=p[i]; }
+    const sc=(sum>1?1/sum:1)*v; let acc=0;
+    for (let i=0;i<n;i++){ acc+=p[i]*sc; if(u<acc) return i; }
+    return -1;
+  };
+  let filled=0;
+  for (let ci=0;ci<idx.length;ci++){
+    idx[ci]=-1;
+    const u=U[ci];
+    if (tq&&tq[ci]>0){
+      // fresh trail reads like the dense end of the design, fading through the colors as it dies
+      const hit=pick(start+(trailEnd-start)*(1-tq[ci]),Math.min(1,tq[ci]*1.6),u);
+      if (hit>=0){ idx[ci]=hit; filled++; continue; }
+    }
+    if (!layers.length) continue;
+    const px=((ci%cols)+0.5)*c, py=(Math.floor(ci/cols)+0.5)*c;
+    for (const L of layers){
+      const g0=gOf(px,py,L), g=g0/L.s;
+      let v=band((L.clip+L.w-g)/L.w);
+      if (L.out!==null) v*=1-band((L.out-g0)/L.w);
+      if (v<=0) continue;
+      const hit=pick(inv?1-g:g,v,u);
+      if (hit>=0){ idx[ci]=hit; filled++; break; }
+    }
+  }
+  grid.filled=filled;
+}
+function interLoop(){
+  inter.raf=0;
+  if (!(animMode&&isInter()&&grid&&field)) return;
+  interAssign(); draw();
+  if (inter.trail.length||inter.bursts.length) inter.raf=requestAnimationFrame(interLoop);
+}
+function kickInter(){ if(!inter.raf) inter.raf=requestAnimationFrame(interLoop); }
+function stopInter(){ if(inter.raf) cancelAnimationFrame(inter.raf); inter.raf=0; inter.trail=[]; inter.bursts=[]; inter.last=null; }
+(function(){
+  const pos=e=>{ const r=view.getBoundingClientRect(); return {x:(e.clientX-r.left)/r.width*grid.W, y:(e.clientY-r.top)/r.height*grid.H}; };
+  view.addEventListener("pointermove",e=>{
+    if(!(animMode&&isInter()&&grid)) return;
+    const p=pos(e), now=performance.now();
+    // fill in points between moves so fast strokes leave an unbroken trail
+    const step=Math.max(grid.c,S.anim.cursor/100*Math.min(grid.W,grid.H)*0.12);
+    if (inter.last){
+      const dx=p.x-inter.last.x, dy=p.y-inter.last.y, dist=Math.hypot(dx,dy), k=Math.floor(dist/step);
+      for (let i=1;i<=k;i++) inter.trail.push({x:inter.last.x+dx*i/(k+1), y:inter.last.y+dy*i/(k+1), t:now});
+    }
+    inter.trail.push({x:p.x,y:p.y,t:now});
+    if (inter.trail.length>600) inter.trail.splice(0,inter.trail.length-600);
+    inter.last=p;
+    kickInter();
+  });
+  view.addEventListener("pointerleave",()=>{ inter.last=null; });
+  view.addEventListener("pointerdown",e=>{
+    if(!(animMode&&isInter()&&grid)) return;
+    e.preventDefault();
+    inter.bursts.push(Object.assign(pos(e),{t0:performance.now()}));
+    if (inter.bursts.length>8) inter.bursts.shift();
+    kickInter();
+  });
+})();
+function isDance(){ return S.anim.type==="dance"; }
+function animTotal(){ return isDance() ? S.anim.dLen : S.anim.in+S.anim.hold+S.anim.out; }
+function band(x){ const s=x<0?0:x>1?1:x; return s*s*(3-2*s); }
+function animSupported(){ return isDance() || isInter() || S.shape!=="matte"; }
+// Dance: each block's threshold wobbles on its own loop, so blocks near the edge of a color's reach flip most.
+function danceAssign(){
+  const idx=grid.idx, n=field.n, P=field.P, U=field.U, G=field.G, DH=field.DH, DK=field.DK;
+  const A=S.anim, ph=animT/A.dLen, amp=A.crazy/100*0.6, flow=A.flow/100;
+  const span=Math.max(1e-6,field.gmax-field.gmin), TAU=Math.PI*2;
+  let filled=0;
+  for(let ci=0;ci<idx.length;ci++){
+    idx[ci]=-1;
+    const k=flow>0.5?1:DK[ci];
+    const travel=(G[ci]-field.gmin)/span*2;
+    const th=TAU*(k*ph+(1-flow)*DH[ci]-flow*travel);
+    const u=Math.max(1e-6,U[ci]+amp*Math.sin(th));
+    let acc=0;
+    for(let i=0;i<n;i++){ acc+=P[ci*n+i]; if(u<acc){ idx[ci]=i; filled++; break; } }
+  }
+  grid.filled=filled;
+}
+// Come in: the gradient itself grows out from its origin (ellipse centre or start handle).
+function growAssign(s,w){
+  const idx=grid.idx, G=field.G, U=field.U, n=S.colors.length;
+  const start=S.start/100, end=Math.max(S.end/100,start+0.001), curve=S.curve;
+  const rates=S.colors.map(o=>o.rate/100);
+  const ends=S.colors.map(o=>start+(end-start)*Math.max(0.01,o.reach/100));
+  const inv=S.shape==="radial"&&S.invert, gm=field.gmax+w;
+  const p=new Float64Array(n);
+  let filled=0;
+  for(let ci=0;ci<idx.length;ci++){
+    idx[ci]=-1;
+    const g=G[ci]/s, v=band((gm-g)/w);
+    if (v<=0) continue;
+    const t=inv?1-g:g;
+    let sum=0;
+    for(let i=0;i<n;i++){
+      const d = t<=start ? 1 : t>=ends[i] ? 0 : Math.pow(1-(t-start)/(ends[i]-start),curve);
+      p[i]=rates[i]*d; sum+=p[i];
+    }
+    const sc=(sum>1?1/sum:1)*v, u=U[ci];
+    let acc=0;
+    for(let i=0;i<n;i++){ acc+=p[i]*sc; if(u<acc){ idx[ci]=i; filled++; break; } }
+  }
+  grid.filled=filled;
+}
+function animAssign(){
+  if (!(animMode&&animSupported()&&field)){ assign(null); return; }
+  if (isDance()){ danceAssign(); return; }
+  if (isInter()){ interAssign(); return; }
+  const A=S.anim, T1=A.in, T2=A.in+A.hold;
+  if (animT>=T1&&animT<T2){ assign(null); return; }
+  const span=Math.max(1e-6,field.gmax-field.gmin), w=Math.max(1e-6,span*A.soft/100);
+  if (animT<T1){
+    growAssign(Math.max(1e-4,bez(A.inEase,animT/T1)),w);
+    return;
+  }
+  // Go out: the background radiates out from the origin and covers the design.
+  const k=Math.min(1,(animT-T2)/A.out), lo=field.gfirst-w*0.5, hi=field.gmax+w;
+  const f=lo+(hi-lo)*bez(A.outEase,k);
+  assign(g=>1-band((f-g)/w));
+}
+function showFrame(){
+  if(!grid||!field) return;
+  animAssign();
+  draw();
+  updateScrub();
+}
+function updateScrub(){
+  const T=animTotal(), A=S.anim;
+  $("animScrub").value=Math.round(Math.min(1,animT/T)*1000);
+  $("animTime").textContent=`${animT.toFixed(1)} s / ${T.toFixed(1)} s`;
+  const ph = isDance() ? "Dancing (loops seamlessly)" : animT<A.in ? "Coming in" : animT<A.in+A.hold ? "Holding" : animT<T ? "Going out" : "Finished";
+  $("animPhase").textContent=animSupported()?ph:"";
+}
+let lastTs=0;
+function animFrame(ts){
+  if(!playing) return;
+  const dt=Math.min(0.1,(ts-lastTs)/1000); lastTs=ts;
+  animT+=dt;
+  const T=animTotal();
+  if (animT>=T){
+    if (S.anim.loop||isDance()) animT=animT%T;
+    else { animT=T; playing=false; syncPlay(); }
+  }
+  showFrame();
+  if (playing) requestAnimationFrame(animFrame);
+}
+function play(){
+  if(!animSupported()||isInter()) return;
+  if (animT>=animTotal()) animT=0;
+  playing=true; syncPlay();
+  lastTs=performance.now();
+  requestAnimationFrame(animFrame);
+}
+function pause(){ playing=false; syncPlay(); }
+function syncPlay(){ $("animPlay").textContent=playing?"Pause":"Play"; }
+function syncAnimType(){
+  const d=isDance();
+  $("animType").querySelectorAll("button").forEach(b=>b.setAttribute("aria-pressed",String(b.dataset.v===S.anim.type)));
+  const it=isInter();
+  $("danceCtl").hidden=!d;
+  $("interCtl").hidden=!it;
+  $("transCtl").hidden=d;
+  $("loopField").hidden=d;
+  $("playSec").hidden=it;
+  $("holdSec").hidden=it;
+  $("exportSec").hidden=it;
+  view.style.cursor=(animMode&&it)?"crosshair":"";
+  if(!(animMode&&it)) stopInter();
+}
+function setMode(m){
+  animMode = m==="animate";
+  closePalette(false);
+  closeEase(false);
+  $("designPanel").hidden=animMode;
+  $("animPanel").hidden=!animMode;
+  $("appMode").querySelectorAll("button").forEach(b=>b.setAttribute("aria-pressed",String(b.dataset.m===m)));
+  syncHandleBtn();
+  syncAnimType();
+  const ok=animSupported();
+  $("animNote").textContent = isInter()
+    ? "Move over the canvas to leave a short pixel trail. Click anywhere to radiate the design out from that point, then clear back to the background."
+    : isDance()
+    ? "Blocks flicker on and off in a seamless loop. Flicker gathers where each color is fading out, so it follows your reach settings."
+    : !ok
+    ? "Animation isn’t available for matte gradients yet. Switch to Linear or Radial in Design mode to animate."
+    : S.shape==="radial"
+      ? "Your gradient grows out from the centre of the ellipse, holds, then the background radiates out from the centre and covers it."
+      : "Your gradient grows out from the start handle, holds, then the background sweeps out from the start handle and covers it.";
+  $("animPanel").querySelectorAll("section").forEach(sec=>{ sec.style.opacity=ok?"":"0.45"; sec.style.pointerEvents=ok?"":"none"; });
+  [["animCursor","cursor",v=>v+"%"],["animTrail","trail",v=>(+v).toFixed(2)+" s"],["animDLen","dLen",v=>(+v).toFixed(1)+" s"],["animCrazy","crazy",v=>v+"%"],["animFlow","flow",v=>v+"%"]]
+    .forEach(([id,k,fmt])=>{ $(id).value=S.anim[k]; $(id+"Out").textContent=fmt(S.anim[k]); });
+  if (animMode){
+    [["animIn","in",v=>(+v).toFixed(1)+" s"],["animHold","hold",v=>(+v).toFixed(1)+" s"],["animOutD","out",v=>(+v).toFixed(1)+" s"],["animSoft","soft",v=>v+"%"]]
+      .forEach(([id,k,fmt])=>{ $(id).value=S.anim[k]; $(id+"Out").textContent=fmt(S.anim[k]); });
+    syncEaseBtns();
+    $("animLoop").checked=!!S.anim.loop;
+    playing=false; syncPlay();
+    animT=isDance()?0:S.anim.in; // open on the finished design
+    if(window.__syncExp) window.__syncExp();
+    showFrame();
+  } else {
+    playing=false;
+    stopInter();
+    view.style.cursor="";
+    if(grid&&field){ assign(null); draw(); }
+  }
+  drawOverlay();
+}
+(function(){
+  $("appMode").addEventListener("click",e=>{ const b=e.target.closest("button[data-m]"); if(b) setMode(b.dataset.m); });
+  const sl=(id,key,fmt)=>{
+    const el=$(id), out=$(id+"Out");
+    const show=()=>{ out.textContent=fmt(S.anim[key]); };
+    el.value=S.anim[key]; show();
+    el.addEventListener("input",()=>{ S.anim[key]=parseFloat(el.value); show(); animT=Math.min(animT,animTotal()); if(!playing) showFrame(); persist(); });
+  };
+  sl("animIn","in",v=>(+v).toFixed(1)+" s");
+  sl("animHold","hold",v=>(+v).toFixed(1)+" s");
+  sl("animOutD","out",v=>(+v).toFixed(1)+" s");
+  sl("animSoft","soft",v=>v+"%");
+  sl("animDLen","dLen",v=>(+v).toFixed(1)+" s");
+  sl("animCrazy","crazy",v=>v+"%");
+  sl("animFlow","flow",v=>v+"%");
+  sl("animCursor","cursor",v=>v+"%");
+  sl("animTrail","trail",v=>(+v).toFixed(2)+" s");
+  $("animType").addEventListener("click",e=>{
+    const b=e.target.closest("button[data-v]"); if(!b) return;
+    const wasPlaying=playing;
+    S.anim.type=b.dataset.v; persist();
+    setMode("animate");
+    if(wasPlaying) play();
+  });
+  syncEaseBtns();
+  $("animLoop").checked=!!S.anim.loop;
+  $("animLoop").addEventListener("change",e=>{ S.anim.loop=e.target.checked; persist(); });
+  $("animPlay").addEventListener("click",()=>{ playing?pause():play(); });
+  $("animRestart").addEventListener("click",()=>{ animT=0; showFrame(); play(); });
+  $("animScrub").addEventListener("input",e=>{ pause(); animT=e.target.value/1000*animTotal(); showFrame(); });
+  updateScrub();
+})();
+
+// Save PNG through the viewer when available
+const fallbackDownloads={save:async({filename,data})=>{
+  const blob=data instanceof Blob?data:new Blob([data]);
+  const url=URL.createObjectURL(blob);
+  const a=document.createElement("a"); a.href=url; a.download=filename;
+  document.body.appendChild(a); a.click(); a.remove();
+  setTimeout(()=>URL.revokeObjectURL(url),2000);
+  return {status:"saved"};
+}};
+let downloads=fallbackDownloads;
+if (window.claude && typeof window.claude.use==="function"){
+  window.claude.use("downloads").then(d=>{
+    if(!d) return;
+    downloads=d;
+    $("savePng").hidden=false;
+    $("saveSvg").hidden=false;
+  }).catch(()=>{});
+}
+function flash(msg){ const n=$("saveNote"); n.textContent=msg; clearTimeout(flash.t); flash.t=setTimeout(()=>{ n.textContent=""; },4000); }
+$("saveSvg").addEventListener("click",async()=>{
+  if(!downloads||!grid) return;
+  try{
+    const r=await downloads.save({filename:`pixel-gradient-${grid.W}x${grid.H}.svg`, data:new Blob([buildSVG()],{type:"image/svg+xml"})});
+    if(r.status==="saved") flash("SVG saved");
+  }catch(err){
+    const code=err&&err.code;
+    if(code==="declined") return;
+    if(code==="rate_limited") flash("A save is already open. Try again in a moment.");
+    else { flash("Saving isn’t available here. Use Copy SVG code instead."); $("saveSvg").hidden=true; }
+  }
+});
+$("copySettings").addEventListener("click",async()=>{
+  const code=JSON.stringify(S);
+  try{
+    await navigator.clipboard.writeText(code);
+    $("svgCode").hidden=true;
+    flash("Settings copied");
+  }catch(e){
+    const ta=$("svgCode"); ta.value=code; ta.hidden=false; ta.focus(); ta.select();
+    flash("Copying was blocked. Select the text below and copy it.");
+  }
+});
+$("copySvg").addEventListener("click",async()=>{
+  if(!grid) return;
+  const code=buildSVG();
+  try{
+    await navigator.clipboard.writeText(code);
+    $("svgCode").hidden=true;
+    flash("SVG code copied");
+  }catch(e){
+    const ta=$("svgCode"); ta.value=code; ta.hidden=false; ta.focus(); ta.select();
+    flash("Copying was blocked. Select the code below and copy it.");
+  }
+});
+$("savePng").addEventListener("click",()=>{
+  if(!downloads) return;
+  view.toBlob(async blob=>{
+    if(!blob) return;
+    const note=$("saveNote");
+    try{
+      const r=await downloads.save({filename:`pixel-gradient-${S.w}x${S.h}.png`, data:blob});
+      note.textContent = r.status==="saved" ? "PNG saved" : "";
+    }catch(err){
+      const code=err&&err.code;
+      if(code==="declined") note.textContent="";
+      else if(code==="rate_limited") note.textContent="A save is already open. Try again in a moment.";
+      else { note.textContent="Saving isn’t available here."; $("savePng").hidden=true; }
+    }
+    setTimeout(()=>{ note.textContent=""; },4000);
+  },"image/png");
+});
+
+// ---- Animation export: MP4, GIF, PNG sequence ----
+(function(){
+  if(!S.exp) S.exp={};
+  S.exp=Object.assign({fmt:"mp4",fps:30,scale:1},S.exp);
+  let exporting=false, cancelReq=false;
+  function exportDims(){
+    const sc=S.exp.scale;
+    return {w:Math.max(2,Math.round(grid.W*sc)), h:Math.max(2,Math.round(grid.H*sc))};
+  }
+  function frameCount(){ return Math.max(1,Math.round(animTotal()*S.exp.fps)); }
+  function syncExp(){
+    [["expFormat","fmt"],["expFps","fps"],["expScale","scale"]].forEach(([id,k])=>
+      $(id).querySelectorAll("button").forEach(b=>b.setAttribute("aria-pressed",String(String(S.exp[k])===b.dataset.v))));
+    if(!grid) return;
+    const d=exportDims(), n=frameCount();
+    $("expSizeOut").textContent=`${d.w} × ${d.h} px`;
+    $("expInfo").textContent=`${n} frames, ${animTotal().toFixed(1)} s. `+(isDance()?"Dance exports one seamless loop.":"Transition exports the full come in, hold and go out.")
+      +(S.exp.fmt==="gif"&&d.w*d.h*n>60e6?" This GIF will be large; 50% or 25% size keeps it lighter.":"");
+  }
+  window.__syncExp=syncExp;
+  [["expFormat","fmt",v=>v],["expFps","fps",v=>+v],["expScale","scale",v=>+v]].forEach(([id,k,cast])=>{
+    $(id).addEventListener("click",e=>{ const b=e.target.closest("button[data-v]"); if(!b||exporting) return; S.exp[k]=cast(b.dataset.v); syncExp(); persist(); });
+  });
+  ["animIn","animHold","animOutD","animDLen"].forEach(id=>$(id).addEventListener("input",syncExp));
+  $("animType").addEventListener("click",()=>setTimeout(syncExp,0));
+  syncExp();
+
+  // render one animation frame at time t into a canvas of the export size
+  const ex=document.createElement("canvas"), exc=ex.getContext("2d");
+  function renderAt(t,w,h){
+    animT=t; animAssign(); draw();
+    ex.width=w; ex.height=h;
+    exc.imageSmoothingEnabled=false;
+    exc.fillStyle=S.base; exc.fillRect(0,0,w,h);
+    exc.drawImage(view,0,0,grid.W,grid.H,0,0,Math.round(grid.W*S.exp.scale),Math.round(grid.H*S.exp.scale));
+    return ex;
+  }
+  // palette index frame straight from the cell grid (for GIF)
+  function indexFrame(w,h){
+    const {c,cols,idx}=grid, sc=S.exp.scale, out=new Uint8Array(w*h);
+    const colOf=new Int32Array(w); for(let x=0;x<w;x++) colOf[x]=Math.min(cols-1,Math.floor(Math.min(grid.W-1,x/sc)/c));
+    for(let y=0;y<h;y++){
+      const row=Math.floor(Math.min(grid.H-1,y/sc)/c)*cols, o=y*w;
+      for(let x=0;x<w;x++) out[o+x]=idx[row+colOf[x]]+1;
+    }
+    return out;
+  }
+  const tick=()=>new Promise(r=>setTimeout(r,0));
+  function progress(f,msg){ $("expBar").style.width=(f*100).toFixed(1)+"%"; $("expMsg").textContent=msg; }
+
+  // ---- GIF encoder (few colors, so no quantising needed) ----
+  function lzw(ind,minCode,out){
+    const clear=1<<minCode, eoi=clear+1;
+    let size=minCode+1, next=eoi+1, dict=new Map();
+    let buf=0, bits=0; const bytes=[];
+    const emit=c=>{ buf|=c<<bits; bits+=size; while(bits>=8){ bytes.push(buf&255); buf>>>=8; bits-=8; } };
+    emit(clear);
+    let prefix=ind[0];
+    for(let i=1;i<ind.length;i++){
+      const k=ind[i], key=prefix*256+k, hit=dict.get(key);
+      if(hit!==undefined){ prefix=hit; continue; }
+      emit(prefix);
+      if(next===4096){ emit(clear); dict=new Map(); next=eoi+1; size=minCode+1; }
+      else { if(next>=(1<<size)) size++; dict.set(key,next++); }
+      prefix=k;
+    }
+    emit(prefix); emit(eoi);
+    if(bits>0) bytes.push(buf&255);
+    out.push(minCode);
+    for(let i=0;i<bytes.length;i+=255){ const n=Math.min(255,bytes.length-i); out.push(n); for(let j=0;j<n;j++) out.push(bytes[i+j]); }
+    out.push(0);
+  }
+  async function exportGif(){
+    const d=exportDims(), n=frameCount(), fps=S.exp.fps;
+    const colors=[S.base,...S.colors.map(o=>o.hex)].map(hexToRgb);
+    let bitsN=1; while((1<<bitsN)<colors.length) bitsN++;
+    const tsize=1<<bitsN, minCode=Math.max(2,bitsN);
+    const parts=[];
+    const hdr=[71,73,70,56,57,97, d.w&255,d.w>>8, d.h&255,d.h>>8, 0x80|((bitsN-1)<<4)|(bitsN-1), 0, 0];
+    for(let i=0;i<tsize;i++){ const c=colors[i]||[0,0,0]; hdr.push(c[0],c[1],c[2]); }
+    hdr.push(0x21,0xFF,11, 78,69,84,83,67,65,80,69,50,46,48, 3,1,0,0,0);
+    parts.push(new Uint8Array(hdr));
+    for(let f=0;f<n;f++){
+      if(cancelReq) return null;
+      // spread centisecond delays so the GIF keeps the right total length
+      const delay=Math.round((f+1)*100/fps)-Math.round(f*100/fps);
+      animT=f/fps; animAssign();
+      const ind=indexFrame(d.w,d.h);
+      const out=[0x21,0xF9,4,0, delay&255,delay>>8, 0,0, 0x2C,0,0,0,0, d.w&255,d.w>>8, d.h&255,d.h>>8, 0];
+      lzw(ind,minCode,out);
+      parts.push(new Uint8Array(out));
+      progress((f+1)/n,`Encoding GIF frame ${f+1} of ${n}`);
+      if(f%2===0) await tick();
+    }
+    parts.push(new Uint8Array([0x3B]));
+    return {blob:new Blob(parts,{type:"image/gif"}), name:`pixel-gradient-${d.w}x${d.h}.gif`};
+  }
+
+  // ---- PNG sequence in a stored (uncompressed) zip ----
+  const CRC=(()=>{ const t=new Uint32Array(256); for(let n=0;n<256;n++){ let c=n; for(let k=0;k<8;k++) c=c&1?0xEDB88320^(c>>>1):c>>>1; t[n]=c>>>0; } return t; })();
+  function crc32(u8){ let c=0xFFFFFFFF; for(let i=0;i<u8.length;i++) c=CRC[(c^u8[i])&255]^(c>>>8); return (c^0xFFFFFFFF)>>>0; }
+  function makeZip(files){
+    const enc=new TextEncoder(), parts=[], central=[]; let offset=0;
+    const u16=v=>[v&255,(v>>8)&255], u32=v=>[v&255,(v>>8)&255,(v>>16)&255,(v>>>24)&255];
+    files.forEach(f=>{
+      const name=enc.encode(f.name), crc=crc32(f.data), sz=f.data.length;
+      const head=new Uint8Array([...u32(0x04034b50),...u16(20),...u16(0),...u16(0),...u16(0),...u16(0x21),...u32(crc),...u32(sz),...u32(sz),...u16(name.length),...u16(0)]);
+      parts.push(head,name,f.data);
+      central.push(new Uint8Array([...u32(0x02014b50),...u16(20),...u16(20),...u16(0),...u16(0),...u16(0),...u16(0x21),...u32(crc),...u32(sz),...u32(sz),...u16(name.length),...u16(0),...u16(0),...u16(0),...u16(0),...u32(0),...u32(offset)]),name);
+      offset+=head.length+name.length+sz;
+    });
+    const cdSize=central.reduce((a,b)=>a+b.length,0);
+    const end=new Uint8Array([...u32(0x06054b50),...u16(0),...u16(0),...u16(files.length),...u16(files.length),...u32(cdSize),...u32(offset),...u16(0)]);
+    return new Blob([...parts,...central,end],{type:"application/zip"});
+  }
+  async function exportPng(){
+    const d=exportDims(), n=frameCount(), digits=Math.max(4,String(n).length), files=[];
+    for(let f=0;f<n;f++){
+      if(cancelReq) return null;
+      renderAt(f/S.exp.fps,d.w,d.h);
+      const blob=await new Promise(r=>ex.toBlob(r,"image/png"));
+      files.push({name:`frame_${String(f+1).padStart(digits,"0")}.png`, data:new Uint8Array(await blob.arrayBuffer())});
+      progress((f+1)/n,`Rendering frame ${f+1} of ${n}`);
+    }
+    progress(1,"Packing zip…"); await tick();
+    return {blob:makeZip(files), name:`pixel-gradient-${d.w}x${d.h}-${S.exp.fps}fps-png-sequence.zip`};
+  }
+
+  // ---- MP4 via WebCodecs + mp4-muxer ----
+  let muxerLoad=null;
+  function loadMuxer(){
+    if(window.Mp4Muxer) return Promise.resolve();
+    if(!muxerLoad) muxerLoad=new Promise((res,rej)=>{
+      const sc=document.createElement("script");
+      sc.src="https://cdn.jsdelivr.net/npm/mp4-muxer@5.1.3/build/mp4-muxer.js";
+      sc.onload=()=>res(); sc.onerror=()=>{ muxerLoad=null; rej(new Error("load")); };
+      document.head.appendChild(sc);
+    });
+    return muxerLoad;
+  }
+  async function exportMp4(){
+    if(typeof VideoEncoder==="undefined") throw new Error("MP4 export needs a recent Chrome, Edge or Safari. Try GIF or PNG sequence here.");
+    progress(0,"Preparing MP4 encoder…");
+    try{ await loadMuxer(); }catch(e){ throw new Error("The MP4 encoder couldn’t load. Check your connection and try again."); }
+    const d=exportDims(), w=d.w+(d.w%2), h=d.h+(d.h%2), n=frameCount(), fps=S.exp.fps;
+    const bitrate=Math.min(40e6,Math.max(2e6,Math.round(w*h*fps*0.2)));
+    let config=null;
+    for(const codec of ["avc1.640028","avc1.640033","avc1.640034","avc1.4d0034","avc1.42003e"]){
+      const cfg={codec,width:w,height:h,bitrate,framerate:fps};
+      try{ const r=await VideoEncoder.isConfigSupported(cfg); if(r.supported){ config=cfg; break; } }catch(e){}
+    }
+    if(!config) throw new Error(`This browser can’t encode MP4 at ${w} × ${h}. Try a smaller size, or use GIF or PNG sequence.`);
+    const target=new Mp4Muxer.ArrayBufferTarget();
+    const muxer=new Mp4Muxer.Muxer({target,video:{codec:"avc",width:w,height:h,frameRate:fps},fastStart:"in-memory"});
+    let encErr=null;
+    const encoder=new VideoEncoder({output:(chunk,meta)=>muxer.addVideoChunk(chunk,meta),error:e=>{encErr=e;}});
+    encoder.configure(config);
+    const fc=document.createElement("canvas"); fc.width=w; fc.height=h; const fctx=fc.getContext("2d");
+    for(let f=0;f<n;f++){
+      if(cancelReq){ try{ encoder.close(); }catch(e){} return null; }
+      if(encErr) throw encErr;
+      renderAt(f/fps,d.w,d.h);
+      fctx.fillStyle=S.base; fctx.fillRect(0,0,w,h); fctx.drawImage(ex,0,0);
+      const vf=new VideoFrame(fc,{timestamp:Math.round(f*1e6/fps),duration:Math.round(1e6/fps)});
+      encoder.encode(vf,{keyFrame:f%(fps*2)===0});
+      vf.close();
+      progress((f+1)/n,`Encoding MP4 frame ${f+1} of ${n}`);
+      while(encoder.encodeQueueSize>6) await new Promise(r=>setTimeout(r,5));
+      if(f%3===0) await tick();
+    }
+    await encoder.flush();
+    if(encErr) throw encErr;
+    encoder.close();
+    muxer.finalize();
+    return {blob:new Blob([target.buffer],{type:"video/mp4"}), name:`pixel-gradient-${w}x${h}-${fps}fps.mp4`};
+  }
+
+  async function saveExport(res){
+    if(!downloads){ progress(1,"Saving isn’t available in this view. Open the tool in its own tab to download."); return; }
+    try{
+      const r=await downloads.save({filename:res.name, data:res.blob});
+      progress(1, r.status==="saved" ? `Saved ${res.name}` : "");
+    }catch(err){
+      const code=err&&err.code;
+      if(code==="declined") progress(1,"Download cancelled.");
+      else if(code==="rate_limited") progress(1,"A save is already open. Try again in a moment.");
+      else if(code==="too_large") progress(1,"That file is too large to save here. Try a smaller size or lower frame rate.");
+      else progress(1,"Saving isn’t available here.");
+    }
+  }
+  $("expGo").addEventListener("click",async()=>{
+    if(exporting||!grid||!field||!animSupported()) return;
+    exporting=true; cancelReq=false; pause();
+    const keepT=animT;
+    $("expGo").disabled=true; $("expCancel").hidden=false; $("expProg").hidden=false;
+    ["expFormat","expFps","expScale"].forEach(id=>$(id).style.pointerEvents="none");
+    progress(0,"Starting…");
+    try{
+      const fn={mp4:exportMp4,gif:exportGif,png:exportPng}[S.exp.fmt];
+      const res=await fn();
+      if(res) await saveExport(res); else progress(0,"Export cancelled.");
+    }catch(e){
+      progress(0,(e&&e.message)||"Export failed.");
+    }
+    exporting=false;
+    $("expGo").disabled=false; $("expCancel").hidden=true;
+    ["expFormat","expFps","expScale"].forEach(id=>$(id).style.pointerEvents="");
+    animT=keepT; showFrame();
+  });
+  $("expCancel").addEventListener("click",()=>{ cancelReq=true; });
+})();
+
+// ---- Shared presets (served by the Netlify function at /api/presets) ----
+(function(){
+  const API="/api/presets";
+  const ICONS=["✨","🔥","🌅","🍊","🧡","💥","🌀","🎯","⭐","🌙","🍋","🌿","💎","🎉","🟧","🟩"];
+  const HEX=/^#[0-9a-f]{6}$/i;
+  const ENUMS={mode:["random","even","ordered"],shape:["linear","radial","matte"],matteFit:["stretch","cover","contain"],"anim.type":["transition","dance","interactive"]};
+  const clampN=(v,lo,hi,d)=>Number.isFinite(v)?Math.max(lo,Math.min(hi,v)):d;
+  function cleanSettings(src){
+    const out=structuredClone(DEFAULTS);
+    const walk=(def,s,o,path)=>{
+      if(!s||typeof s!=="object") return;
+      for(const k of Object.keys(def)){
+        const p=path?path+"."+k:k, dv=def[k], sv=s[k];
+        if(k==="colors"){
+          if(Array.isArray(sv)){
+            const cs=sv.filter(c=>c&&typeof c.hex==="string"&&HEX.test(c.hex)).slice(0,8)
+              .map(c=>({hex:c.hex.toLowerCase(),rate:clampN(c.rate,0,100,50),reach:clampN(c.reach,1,100,100)}));
+            if(cs.length) o.colors=cs;
+          }
+          continue;
+        }
+        if(Array.isArray(dv)){ if(Array.isArray(sv)&&sv.length===dv.length&&sv.every(Number.isFinite)) o[k]=sv.slice(); continue; }
+        if(dv&&typeof dv==="object"){ walk(dv,sv,o[k],p); continue; }
+        if(typeof dv==="number"){ if(Number.isFinite(sv)) o[k]=sv; continue; }
+        if(typeof dv==="boolean"){ if(typeof sv==="boolean") o[k]=sv; continue; }
+        if(typeof dv==="string"&&typeof sv==="string"){
+          if(k==="base"){ if(HEX.test(sv)) o[k]=sv.toLowerCase(); }
+          else if(ENUMS[p]&&ENUMS[p].includes(sv)) o[k]=sv;
+        }
+      }
+    };
+    walk(DEFAULTS,src,out,"");
+    if(src&&src.exp&&typeof src.exp==="object"){
+      out.exp={fmt:["mp4","gif","png"].includes(src.exp.fmt)?src.exp.fmt:"mp4",
+               fps:[24,30,60].includes(src.exp.fps)?src.exp.fps:30,
+               scale:[1,0.5,0.25].includes(src.exp.scale)?src.exp.scale:1};
+    }
+    out.w=Math.round(clampN(out.w,16,8000,DEFAULTS.w)); out.h=Math.round(clampN(out.h,16,8000,DEFAULTS.h));
+    out.cell=Math.round(clampN(out.cell,1,80,DEFAULTS.cell));
+    return out;
+  }
+  const readLS=(k,d)=>{ try{ const v=JSON.parse(localStorage.getItem(k)); return v==null?d:v; }catch(e){ return d; } };
+  const writeLS=(k,v)=>{ try{ localStorage.setItem(k,JSON.stringify(v)); }catch(e){} };
+  let list=null, apiOk=true, loading=false;
+  async function load(){
+    loading=true;
+    try{
+      const r=await fetch(API,{cache:"no-store"});
+      if(!r.ok) throw new Error();
+      const d=await r.json();
+      if(!Array.isArray(d)) throw new Error();
+      list=d; apiOk=true;
+    }catch(e){ list=[]; apiOk=false; }
+    loading=false;
+  }
+  function apply(settings,name){
+    closePop(false);
+    S=cleanSettings(settings);
+    rebuildUI();
+    if(animMode) setMode("animate");
+    if(window.__syncExp) window.__syncExp();
+    persist();
+    flash(`Applied “${name}”`);
+  }
+
+  const pop=document.createElement("div");
+  pop.id="presetPop"; pop.setAttribute("role","dialog"); pop.setAttribute("aria-label","Presets"); pop.hidden=true;
+  document.body.appendChild(pop);
+  let anchor=null;
+  const el=(tag,props={},kids=[])=>{ const e=document.createElement(tag); Object.assign(e,props); kids.forEach(k=>e.append(k)); return e; };
+
+  function place(){
+    if(!anchor) return;
+    const r=anchor.getBoundingClientRect(), pw=pop.offsetWidth, ph=pop.offsetHeight;
+    pop.style.left=Math.min(window.innerWidth-pw-8,Math.max(8,r.left))+"px";
+    let top=r.bottom+6; if(top+ph>window.innerHeight-8) top=Math.max(8,r.top-ph-6);
+    pop.style.top=top+"px";
+  }
+  function browse(){
+    pop.replaceChildren();
+    pop.append(el("p",{className:"pop-title",textContent:"Presets"}));
+    if(loading){ pop.append(el("p",{className:"hint",textContent:"Loading presets…"})); place(); return; }
+    const tokens=readLS("psg-preset-tokens",{}), admin=readLS("psg-admin-key","");
+    const ul=el("div",{className:"preset-list"});
+    const row=(icon,name,sub,onApply,onDelete)=>{
+      const btn=el("button",{type:"button",className:"preset-item"},[
+        el("span",{className:"ic",textContent:icon||"▦"}), el("span",{className:"nm",textContent:name}), el("span",{className:"dt",textContent:sub||""})]);
+      btn.addEventListener("click",onApply);
+      const wrap=el("div",{className:"pr-row"},[btn]);
+      if(onDelete){
+        const del=el("button",{type:"button",className:"icon-btn",textContent:"×",title:"Delete preset"});
+        del.setAttribute("aria-label",`Delete preset ${name}`);
+        del.addEventListener("click",onDelete);
+        wrap.append(del);
+      }
+      ul.append(wrap);
+    };
+    row("★","Brand default","Built in",()=>apply(DEFAULTS,"Brand default"));
+    list.slice().reverse().forEach(p=>{
+      const mine=!!tokens[p.id];
+      const date=p.createdAt?new Date(p.createdAt).toLocaleDateString(undefined,{day:"numeric",month:"short"}):"";
+      row(p.icon,p.name,date,()=>apply(p.settings,p.name),(mine||admin)?async()=>{
+        if(!confirm(`Delete the preset “${p.name}” for everyone? This can’t be undone.`)) return;
+        try{
+          const h={}; if(tokens[p.id]) h["x-preset-token"]=tokens[p.id]; if(admin) h["x-admin-key"]=admin;
+          const r=await fetch(API+"?id="+encodeURIComponent(p.id),{method:"DELETE",headers:h});
+          const d=await r.json().catch(()=>({}));
+          if(!r.ok) throw new Error(d.error||"Couldn’t delete that preset.");
+          delete tokens[p.id]; writeLS("psg-preset-tokens",tokens);
+          await load(); browse(); flash("Preset deleted");
+        }catch(e){ flash(e.message); }
+      }:null);
+    });
+    pop.append(ul);
+    if(!apiOk){
+      pop.append(el("p",{className:"hint",textContent:"Shared presets aren’t available in this view. They work on the hosted Netlify site."}));
+    } else if(!list.length){
+      pop.append(el("p",{className:"hint",textContent:"No shared presets yet. Save your current settings to create the first one."}));
+    }
+    const save=el("button",{type:"button",className:"btn primary small",textContent:"Save current as preset",disabled:!apiOk});
+    save.addEventListener("click",saveView);
+    const manage=el("button",{type:"button",className:"btn small",textContent:admin?"Admin: on":"Admin"});
+    manage.addEventListener("click",adminView);
+    pop.append(el("div",{className:"btn-row",style:"margin-top:12px"},[save,manage]));
+    place();
+  }
+  function saveView(){
+    pop.replaceChildren();
+    pop.append(el("p",{className:"pop-title",textContent:"Save as preset"}));
+    const name=el("input",{type:"text",maxLength:40,placeholder:"Preset name",className:"p-input"});
+    name.setAttribute("aria-label","Preset name");
+    let icon=ICONS[0];
+    const grid=el("div",{className:"icon-grid",role:"group"}); grid.setAttribute("aria-label","Icon");
+    ICONS.forEach(ic=>{
+      const b=el("button",{type:"button",textContent:ic}); b.setAttribute("aria-label",ic); b.setAttribute("aria-pressed",String(ic===icon));
+      b.addEventListener("click",()=>{ icon=ic; grid.querySelectorAll("button").forEach(x=>x.setAttribute("aria-pressed",String(x===b))); });
+      grid.append(b);
+    });
+    const err=el("p",{className:"p-err",role:"alert"});
+    const go=el("button",{type:"button",className:"btn primary small",textContent:"Save preset"});
+    const back=el("button",{type:"button",className:"btn small",textContent:"Back"});
+    back.addEventListener("click",browse);
+    const submit=async()=>{
+      const n=name.value.trim();
+      if(!n){ err.textContent="Give the preset a name."; name.focus(); return; }
+      go.disabled=true; go.textContent="Saving…";
+      try{
+        const settings=JSON.parse(JSON.stringify(S));
+        const r=await fetch(API,{method:"POST",headers:{"content-type":"application/json"},body:JSON.stringify({name:n,icon,settings})});
+        const d=await r.json().catch(()=>({}));
+        if(!r.ok) throw new Error(d.error||"Couldn’t save the preset. Try again.");
+        const tokens=readLS("psg-preset-tokens",{}); tokens[d.preset.id]=d.token; writeLS("psg-preset-tokens",tokens);
+        await load(); browse(); flash(`Saved “${n}”`);
+      }catch(e){ err.textContent=e.message; go.disabled=false; go.textContent="Save preset"; }
+    };
+    go.addEventListener("click",submit);
+    name.addEventListener("keydown",e=>{ if(e.key==="Enter") submit(); });
+    pop.append(name,el("p",{className:"hint",textContent:"Icon",style:"margin:10px 0 0"}),grid,
+      el("p",{className:"hint",textContent:"Saves everything in the Design and Animate tabs for everyone who uses this tool. Uploaded matte images aren’t included."}),
+      err, el("div",{className:"btn-row"},[go,back]));
+    place(); name.focus();
+  }
+  function adminView(){
+    pop.replaceChildren();
+    pop.append(el("p",{className:"pop-title",textContent:"Admin"}));
+    const key=el("input",{type:"password",className:"p-input",placeholder:"Admin key",value:readLS("psg-admin-key","")});
+    key.setAttribute("aria-label","Admin key");
+    const ok=el("button",{type:"button",className:"btn primary small",textContent:"Save"});
+    const clear=el("button",{type:"button",className:"btn small",textContent:"Remove key"});
+    const back=el("button",{type:"button",className:"btn small",textContent:"Back"});
+    ok.addEventListener("click",()=>{ writeLS("psg-admin-key",key.value.trim()); browse(); });
+    clear.addEventListener("click",()=>{ try{ localStorage.removeItem("psg-admin-key"); }catch(e){} browse(); });
+    back.addEventListener("click",browse);
+    pop.append(el("p",{className:"hint",textContent:"With the site’s admin key entered, you can delete any preset. Without it, people can only delete presets they made in this browser."}),
+      key, el("div",{className:"btn-row",style:"margin-top:10px"},[ok,clear,back]));
+    place(); key.focus();
+  }
+  async function openPop(btn,view){
+    if(anchor===btn&&!pop.hidden){ closePop(true); return; }
+    closePop(false);
+    anchor=btn; btn.setAttribute("aria-expanded","true");
+    pop.hidden=false; loading=true; browse();
+    await load();
+    if(anchor!==btn) return;
+    if(view==="save"&&apiOk) saveView(); else browse();
+  }
+  function closePop(focusBack){
+    if(!anchor) return;
+    pop.hidden=true; anchor.setAttribute("aria-expanded","false");
+    if(focusBack) anchor.focus();
+    anchor=null;
+  }
+  $("presetBtn").addEventListener("click",e=>openPop(e.currentTarget,"browse"));
+  $("presetSave").addEventListener("click",e=>openPop(e.currentTarget,"save"));
+  document.addEventListener("pointerdown",e=>{ if(anchor&&!pop.contains(e.target)&&!anchor.contains(e.target)) closePop(false); });
+  document.addEventListener("keydown",e=>{ if(e.key==="Escape"&&anchor) closePop(true); });
+  window.addEventListener("resize",()=>closePop(false));
+})();
+
+})();
+</script>
+</body>
+</html>
