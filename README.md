@@ -2,7 +2,7 @@
 
 A standalone web tool for building pixel scatter gradients and animations, with shared presets.
 
-## What's in this folder
+## What's in this repository
 
 - `index.html`: the tool itself.
 - `netlify/functions/presets.mjs`: a small backend that stores shared presets in Netlify Blobs at `/api/presets`.
@@ -11,7 +11,7 @@ A standalone web tool for building pixel scatter gradients and animations, with 
 
 ## Deploying from GitHub
 
-1. Create a new GitHub repository and upload everything in this folder, keeping the `netlify/functions` folder structure.
+1. Create a new GitHub repository and upload these files to the **root** of the repository (not inside a subfolder), keeping the `netlify/functions` folder structure. If the files sit in a subfolder, Netlify can't find `index.html` and the site shows "Page not found".
 2. In Netlify, open the existing site, go to **Site configuration → Build & deploy → Link repository**, and choose the repository.
 3. Leave the build command empty. The publish directory comes from `netlify.toml`.
 4. Deploy. Netlify installs the package and turns on Blobs storage automatically.
